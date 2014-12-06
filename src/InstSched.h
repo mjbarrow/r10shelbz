@@ -16,22 +16,22 @@
 #include "InstPipe.h"
 #include "ROB.h"			//This needs to do something to the ROB? Actually I dont think so...
 
-#define PrintQueueEntry(i,x) 				cout << "<|| #" << i;	\
-											cout << ":\t|";			\
-											cout << "tr# " << (*x).traceLineNo;	\
-											cout << "\t| ";						\
+#define PrintQueueEntry(i,x) 				cerr << "<|| #" << i;	\
+											cerr << ":\t|";			\
+											cerr << "tr# " << (*x).traceLineNo;	\
+											cerr << "\t| ";						\
 											if(((*x).m_rs_rdy && (*x).m_rt_rdy))\
-												cout << "READY! \t\t|";			\
+												cerr << "READY! \t\t|";			\
 											else if((!(*x).m_rs_rdy) && (*x).m_rt_rdy)	\
-												cout << "Wait: m_rs\t\t|";			  	\
+												cerr << "Wait: m_rs\t\t|";			  	\
 											else if((!(*x).m_rt_rdy) && (*x).m_rs_rdy)	\
-												cout << "Wait: m_rt\t\t|";				\
+												cerr << "Wait: m_rt\t\t|";				\
 											else if(((*x).m_rs_rdy || (*x).m_rt_rdy))	\
-												cout << "Wait: m_rs+m_rt\t| ";			\
-											cout << "rd: " <<hex<<"0x"<< (*x).rd << " <- rs:" <<hex<<"0x"<< (*x).rs << " "+(*x).strOp+" rt: " <<hex<<"0x"<< (*x).rt;\
-											cout << "\t|";			\
-											cout <<	"m_rd: " <<hex<<"0x"<< (*x).m_rd.machineReg << " <- m_rs:" <<hex<<"0x"<< (*x).m_rs << " "+(*x).strOp+" m_rt: " <<hex<<"0x"<< (*x).m_rt;\
-											cout << "\t||>," << endl;
+												cerr << "Wait: m_rs+m_rt\t| ";			\
+											cerr << "rd: " <<hex<<"0x"<< (*x).rd << " <- rs:" <<hex<<"0x"<< (*x).rs << " "+(*x).strOp+" rt: " <<hex<<"0x"<< (*x).rt;\
+											cerr << "\t|";			\
+											cerr <<	"m_rd: " <<hex<<"0x"<< (*x).m_rd.machineReg << " <- m_rs:" <<hex<<"0x"<< (*x).m_rs << " "+(*x).strOp+" m_rt: " <<hex<<"0x"<< (*x).m_rt;\
+											cerr << "\t||>," << endl;
 
 
 using namespace std;
@@ -65,13 +65,13 @@ public:
 	void print()
 	{
 		int i = 0;
-		cout << "[" << endl;
+		cerr << "[" << endl;
 		for(FPQueueEntryiterator it = this->begin(); it != this->end(); it++)
 		{
 			PrintQueueEntry(i,it);
 			i++;
 		}
-		cout << "]" << endl;
+		cerr << "]" << endl;
 	}
 
 	virtual~FPQueue(){}
@@ -124,42 +124,42 @@ public:
 
 	void printInstructionQueues()
 	{
-		cout << "\t\t\t\t\t= Floating Point Queue status: =" << endl;
+		cerr << "\t\t\t\t\t= Floating Point Queue status: =" << endl;
 		_FPInstructionQueue.print();
-		cout << "\t\t\t\t\t================================" << endl;
-		cout << "\t\t\t\t\t\t= ALU Queue status: =" << endl;
+		cerr << "\t\t\t\t\t================================" << endl;
+		cerr << "\t\t\t\t\t\t= ALU Queue status: =" << endl;
 		_ALUInstructionQueue.print();
-		cout << "\t\t\t\t\t\t=====================" << endl;
-		cout << "\t\t\t\t\t\t= LS Queue status: =" << endl;
+		cerr << "\t\t\t\t\t\t=====================" << endl;
+		cerr << "\t\t\t\t\t\t= LS Queue status: =" << endl;
 		_LSInstructionQueue.print();
-		cout << "\t\t\t\t\t\t====================" << endl;
+		cerr << "\t\t\t\t\t\t====================" << endl;
 	}
 
 	void printArbitrationStruct()
 	{
-		cout << "\t\t\t\t\t= Arbitration struct status: =" << endl;
+		cerr << "\t\t\t\t\t= Arbitration struct status: =" << endl;
 
 		if(_scheduledInstructions.scheduledFPM != _FPInstructionQueue.end())
-			{cout << "scheduled FPM:\t,"; PrintQueueEntry(0,_scheduledInstructions.scheduledFPM);}
+			{cerr << "scheduled FPM:\t,"; PrintQueueEntry(0,_scheduledInstructions.scheduledFPM);}
 		else
-			{cout << "scheduled FPM:\t," << 0  << "<|| NULL ||>" << endl;}
+			{cerr << "scheduled FPM:\t," << 0  << "<|| NULL ||>" << endl;}
 		if(_scheduledInstructions.scheduledFPA != _FPInstructionQueue.end())
-			{cout << "scheduled FPA:\t,"; PrintQueueEntry(1,_scheduledInstructions.scheduledFPA);}
+			{cerr << "scheduled FPA:\t,"; PrintQueueEntry(1,_scheduledInstructions.scheduledFPA);}
 		else
-			{cout << "scheduled FP2:\t," << 1  << "<|| NULL ||>" << endl;}
+			{cerr << "scheduled FP2:\t," << 1  << "<|| NULL ||>" << endl;}
 		if(_scheduledInstructions.scheduledALU1 != _ALUInstructionQueue.end())
-			{cout << "scheduled ALU1:\t,"; PrintQueueEntry(2,_scheduledInstructions.scheduledALU1);}
+			{cerr << "scheduled ALU1:\t,"; PrintQueueEntry(2,_scheduledInstructions.scheduledALU1);}
 		else
-			{cout << "scheduled ALU1:\t," << 2  << "<|| NULL ||>" << endl;}
+			{cerr << "scheduled ALU1:\t," << 2  << "<|| NULL ||>" << endl;}
 		if(_scheduledInstructions.scheduledALU2 != _ALUInstructionQueue.end())
-			{cout << "scheduled ALU2:\t,"; PrintQueueEntry(3,_scheduledInstructions.scheduledALU2);}
+			{cerr << "scheduled ALU2:\t,"; PrintQueueEntry(3,_scheduledInstructions.scheduledALU2);}
 		else
-			{cout << "scheduled ALU2:\t," << 3  << "<|| NULL ||>" << endl;}
+			{cerr << "scheduled ALU2:\t," << 3  << "<|| NULL ||>" << endl;}
 		if(_scheduledInstructions.scheduledLS1 != _LSInstructionQueue.end())
-			{cout << "scheduled LS1:\t,"; PrintQueueEntry(4,_scheduledInstructions.scheduledLS1);}
+			{cerr << "scheduled LS1:\t,"; PrintQueueEntry(4,_scheduledInstructions.scheduledLS1);}
 		else
-			{cout << "scheduled LS1:\t," << 4  << "<|| NULL ||>" << endl;}
-		cout << "\t\t\t\t\t================================" << endl;
+			{cerr << "scheduled LS1:\t," << 4  << "<|| NULL ||>" << endl;}
+		cerr << "\t\t\t\t\t================================" << endl;
 	}
 
 	virtual ~InstSchedStage();

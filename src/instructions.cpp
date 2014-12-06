@@ -71,7 +71,7 @@ instruction::instruction(string str_instruction)
 		unchked_asm = str_instruction.substr(0, pos);
 	    Opcode_val = decode_opcode(unchked_asm);
 	    if(Opcode_val != -1) Opcode_name = unchked_asm;	//Keep the opcode if we decode ok.
-	    std::cout << Opcode_name << std::endl;
+	    std::cerr << Opcode_name << std::endl;
 
 	    //Adjust input for next part of instruction
 	    str_instruction.erase(0, pos + delimiter.length());
@@ -79,7 +79,7 @@ instruction::instruction(string str_instruction)
 	else
 	{
 		//Should have an opcode. :( Fail.
-		std::cout << "bad opcode" << std::endl;
+		std::cerr << "bad opcode" << std::endl;
 		return;
 	}
 	//Get Operand 1
@@ -89,7 +89,7 @@ instruction::instruction(string str_instruction)
 	{
 //TO DO: Parse Opcode
 	    Operand1_name = str_instruction.substr(0, pos);
-	    std::cout << Operand1_name << std::endl;
+	    std::cerr << Operand1_name << std::endl;
 
 	    //Adjust input for next part of instruction
 	    str_instruction.erase(0, pos + delimiter.length());
@@ -97,7 +97,7 @@ instruction::instruction(string str_instruction)
 	else
 	{
 		//Should have an opcode. :( Fail.
-		std::cout << "bad operand 1" << std::endl;
+		std::cerr << "bad operand 1" << std::endl;
 		return;
 	}
 	//Get Operand 2
@@ -105,7 +105,7 @@ instruction::instruction(string str_instruction)
 	{
 //TO DO: Parse Opcode
 	    Operand2_name = str_instruction.substr(0, pos);
-	    std::cout << Operand2_name << std::endl;
+	    std::cerr << Operand2_name << std::endl;
 
 	    //Adjust input for next part of instruction
 	    str_instruction.erase(0, pos + delimiter.length());
@@ -113,13 +113,13 @@ instruction::instruction(string str_instruction)
 	else
 	{
 		//Should have an opcode. :( Fail.
-		std::cout << "bad operand 2" << std::endl;
+		std::cerr << "bad operand 2" << std::endl;
 		return;
 	}
 	//Operand 3 should be all that is left in the string
 //TO DO: Parse Opcode
 	Operand3_name = str_instruction.substr(0, pos);
-	std::cout << Operand3_name << std::endl;
+	std::cerr << Operand3_name << std::endl;
 
 	//Adjust input for next part of instruction
 	str_instruction.erase(0, pos + delimiter.length());
@@ -166,7 +166,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 	else
 	{
 		//Should have an opcode. :( Fail.
-		std::cout << "bad opcode" << std::endl;
+		std::cerr << "bad opcode" << std::endl;
 		return;
 	}
 	//Get Operand 1
@@ -184,7 +184,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 	else
 	{
 		//Should have an opcode. :( Fail.
-		std::cout << "bad operand 1" << std::endl;
+		std::cerr << "bad operand 1" << std::endl;
 		return;
 	}
 	//Get rt
@@ -202,7 +202,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 	else
 	{
 		//Should have an opcode. :( Fail.
-		std::cout << "bad operand 2" << std::endl;
+		std::cerr << "bad operand 2" << std::endl;
 		return;
 	}
 
@@ -223,7 +223,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 		else
 		{
 			//Should have an opcode. :( Fail.
-			std::cout << "bad rd" << std::endl;
+			std::cerr << "bad rd" << std::endl;
 			return;
 		}
 		//Get extra if needed

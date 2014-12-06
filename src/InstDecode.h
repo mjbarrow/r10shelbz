@@ -14,6 +14,7 @@
 #include "InstSched.h"
 #include <queue>
 #include <map>
+#include "userinterface.h"
 
 using namespace logic;
 
@@ -24,24 +25,29 @@ class InstDecodeStage {
 public:
 
 	/*Initialize FreeRegList where all renameReg's are free*/
-	InstDecodeStage(	InstSchedStage* pScheduler,
+	InstDecodeStage(	UserInterface* 	ui,
+						InstSchedStage* pScheduler,
 						ROB* 			pROB,
 						freeRegList* 	pFreeRegList,
 						regmaptable* 	pRegMapTable,
 						ISAreginstance* pMaxISAregmap)
 	{
 		int i;
-		_pScheduler = pScheduler;
-		_pROB = pROB;
-		_FreeRegList = pFreeRegList;
-		_RegMapTable = pRegMapTable;
-		_ISAInstanceRegmap = pMaxISAregmap;		//this should wrap around, so the ROB may not be larger than 2^16
+		_ui 				= ui;
+		_pScheduler 		= pScheduler;
+		_pROB 				= pROB;
+		_FreeRegList 		= pFreeRegList;
+		_RegMapTable 		= pRegMapTable;
+		_ISAInstanceRegmap 	= pMaxISAregmap;		//this should wrap around, so the ROB may not be larger than 2^16
 
 		for(i = 0; i< renameRegCount; i++){_FreeRegList->push(i);}						//Initialize free reg list
 		for(i = 0; i< ISARegCount; i++){_ISAInstanceRegmap->insert(ISAreginstancepair(i,0));} //Initialize reginstance to 0 for all ISAReg's
 	}
 
 //TODO:	void toggleclk();
+	//TODO swizzle registers
+	//Blit the appropriate widget
+	void risingEdge();
 
 	//RETURNS FALSE IF WE RUN OUT OF ACTIVE LIST ENTRIES. WILL NOT HAVE MAPPED traceline ON FALSE RETURN
 	bool Decode(traceinstruction traceline);	//return success if ok, false if something went wrong
@@ -55,6 +61,10 @@ public:
 	virtual ~InstDecodeStage(){}
 
 private:
+	string regmapEntryToString(regmappair entry);
+	//Use this to update the UI
+	UserInterface* 	_ui;
+
 	//Need to connect to some external hardware. Namely, an ROB buffer
 	ROB* 			_pROB;
 	//Also need to connect to the Scheduler because according to R10K paper Decoder fills its

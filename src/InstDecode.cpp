@@ -16,6 +16,32 @@ using namespace std;
 
 namespace R10k {
 
+//===================================================================================================================
+//							SYNCHRONOUS FUNCTIONS
+//==================================================================================================================
+
+//TODO swizzle registers
+//Blit the appropriate widget
+void InstDecodeStage::risingEdge()
+{
+	vector<string> stringRegMap;
+	std::map<int,int>::iterator rmapit;
+	regmappair a;
+
+	//Construct the correct type of input for the blit function
+	//An array of strings which it will blit out
+	for(rmapit = _RegMapTable->begin(); rmapit != _RegMapTable->end(); rmapit++)
+	{
+		stringRegMap.push_back(regmapEntryToString(*rmapit));
+	}
+	//trigger the blit function so that the screen output is refreshed of the ROB content
+	_ui->blitRegMapTable(&stringRegMap);
+}
+
+//===================================================================================================================
+//							LOGIC FUNCTIONS
+//===================================================================================================================
+
 
 //RETURNS FALSE IF WE RUN OUT OF ACTIVE LIST ENTRIES. WILL NOT HAVE MAPPED traceline ON FALSE RETURN
 bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok, false if something went wrong
@@ -192,6 +218,26 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 	}
 
 	return true;
+}
+
+//=============================================================================================================================
+//								UI RELATED FUNCTIONS
+//=============================================================================================================================
+
+
+string InstDecodeStage::regmapEntryToString(regmappair entry)
+{
+	string regmapEntryString;
+	ostringstream os;
+	RegMapKey entryKey;
+
+	entryKey.Key = entry.first;	//Get the key from the key value pair. This has special mapping we need to descramble.
+
+	os << "| cpy#: 0x" <<hex << entryKey.ISAInstanceCounter <<" | ISA: 0x" << hex << entryKey.ISAReg << " -> PHY: 0x" <<hex << entry.second;
+
+	regmapEntryString = os.str();	//Assign the returned string this formatted output
+
+	return regmapEntryString;		//Return a string formatted regmap table entry
 }
 
 }

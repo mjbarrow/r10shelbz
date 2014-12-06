@@ -10,10 +10,11 @@
 #ifndef ROB_H_
 #define ROB_H_
 
-#include "utils.h"
-#include "instructions.h"
 #include <vector>
 #include <iostream>
+#include "utils.h"
+#include "instructions.h"
+#include "userinterface.h"
 
 
 using namespace std;
@@ -25,11 +26,6 @@ namespace R10k {
  * cycle added: traceinstruction
  * A commit operation will dump that information along with the commit cycle counter
  */
-/*
-typedef struct _ROBENTRY {
-	int 				instantiationcycle;
-	traceinstruction 	value;
-}robEntry, *probEntry;*/
 
 class robEntry: public traceinstruction
 {
@@ -65,19 +61,19 @@ public:
 
 class ROB {
 public:
-	ROB(	freeRegList* FreeRegList,
-			regmaptable* rmt/*,
-			ISAreginstance* miri*/)
+	ROB(	UserInterface*	ui,
+			freeRegList* 	FreeRegList,
+			regmaptable* 	rmt			)
 	{
 		head = tail 	= 0;
+		_ui 			= ui;
 		_FreeRegList 	= FreeRegList;
 		_regMapTable 	= rmt;
 		ROBbuffer.push_back(robEntry());		//Initialize first ROB entry for the "full" checking logic
-//		ROBbuffer.push_back(robEntry());		//Initial mapping for mr_1
-//		ROBbuffer.push_back(robEntry());		//initial mapping for mr_2
-//		ROBbuffer[1].m_rd.ISAReg = 1;			//Initial val for ROB entry 1 (lets the first instruction be scheduled
-//		ROBbuffer[1].m_rd.ISAReg = 2;			//Initial val for ROB entry 2 (lets the second instruction )
 	}
+
+	//Project spec function
+	void risingEdge();
 
 	int getHead()							{return head;}
 	int getTail()							{return tail;}
@@ -101,32 +97,49 @@ private:
 	unsigned int 		tail;
 	freeRegList* 		_FreeRegList;	//The ROB needs this when committing. It will free registers from here
 	regmaptable* 		_regMapTable;	//Also needed when committing, to remove
+	UserInterface*		_ui;			//Need this to blit out to the user interface
 //DO NOT TOUCH.	ISAreginstance* 	_ISAregmap;	//Invalid machine to architecture register maps
 
 	std::vector<robEntry>ROBbuffer;
 
-	void printBufferLine(int entry)
-	{
-		robEntry line  = ROBbuffer[entry];
-		if(((unsigned int)entry == head) && ((unsigned int)entry == tail))
-			cout << "hd+tl->\t|| #";
-		else if((unsigned int)entry == tail)
-			cout << "tail->\t|| #";
-		else if((unsigned int)entry == head)
-			cout << "head->\t|| #";
-		else
-			cout << "\t|| #";
 
-		cout << entry << ":\t|"
+	//Convert the buffer line into a string. Usefull for debug.
+	//See: http://stackoverflow.com/questions/3203452/how-to-read-entire-stream-into-a-stdstring
+	string bufferLineToString(int entry)
+	{
+		string robEntryString;
+		ostringstream os;
+		robEntry line  = ROBbuffer[entry];
+
+		if(((unsigned int)entry == head) && ((unsigned int)entry == tail))
+			os << "hd+tl->\t|| #";
+		else if((unsigned int)entry == tail)
+			os << "tail->\t|| #";
+		else if((unsigned int)entry == head)
+			os << "head->\t|| #";
+		else
+			os << "\t|| #";
+
+		os 	<< entry << ":\t|"
 			 << " DecCy# "	<< line.instantiationcycle
 			 << " rtrd? "	<< line.retired
 			 << "  | "
 			 << " isa reg "	 <<hex<<"0x"<< line.rd << " <- isa reg: " <<hex<<"0x"<< line.rs << " "+line.strOp+" isa reg: " <<hex<<"0x"<< line.rt
 			 << "\t|\t"
 			 << " m reg "	 <<hex<<"0x"<< line.m_rd.machineReg << " <- m reg: " <<hex<<"0x"<< line.m_rs << " "+line.strOp+" m reg: " <<hex<<"0x"<< line.m_rt
-			 << "\t||" << endl;
+			 << "\t||";
+
+		robEntryString = os.str();
+
+		return robEntryString;
 	}
+
+	void printBufferLine(int entry)	{cerr << bufferLineToString(entry) << endl;}
+
 };
+
+//TODO Function should, swizzle registers and blit ROB to screen
+void risingEdge();
 
 } /* namespace R10k */
 

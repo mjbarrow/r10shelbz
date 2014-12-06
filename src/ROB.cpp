@@ -13,6 +13,23 @@ ROB::~ROB() {
 	// TODO Auto-generated destructor stub
 }
 
+//TODO swizzle registers
+//Blit the appropriate widget
+void ROB::risingEdge()
+{
+	vector<string> stringROB;
+	unsigned int i;
+
+	//Construct the correct type of input for the blit function
+	//An array of strings which it will blit out
+	for(i = 0; i < ROBbuffer.size(); i++)
+	{
+		stringROB.push_back(bufferLineToString(i));
+	}
+	//trigger the blit function so that the screen output is refreshed of the ROB content
+	_ui->blitROBList(&stringROB);
+}
+
 //TODO: this needs to be fixed up with clock because it has no
 //Clock cycle value in the newEntry
 void ROB::addEntry(traceinstruction value)
@@ -66,7 +83,8 @@ void ROB::commitTailInstructions(int count)
 	if(count > ROBSize) return;	//this is just nonsense.
 
 	//Add the destination machine registers back into the free list
-	while(count)
+	while(	count &&
+			(tail < ROBbuffer.size())	)	//You may not commit more instructions than exist in the ROB presently. (it is a vector and grows)
 	{
 		//Commit the earliest instructions in the ROB
 		commitme = ROBbuffer[tail];

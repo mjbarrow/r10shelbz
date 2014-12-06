@@ -64,45 +64,45 @@ public:
 	{
 		vector<traceinstruction>::const_iterator pstg;
 
-		cout << "_____________________________________________________" << endl;
-		cout << "FP Mul Pipe:\t||";
+		cerr << "_____________________________________________________" << endl;
+		cerr << "FP Mul Pipe:\t||";
 		for(	pstg = _FPMpipe.begin(); pstg != _FPMpipe.end(); pstg++	)
 		{
-			cout << (*pstg).traceLineNo << "\t|";
+			cerr << (*pstg).traceLineNo << "\t|";
 		}
-		cout << "|" << endl;
+		cerr << "|" << endl;
 
-		cout << "_____________________________________________________"<< endl;
-		cout << "FP Add Pipe:\t||";
+		cerr << "_____________________________________________________"<< endl;
+		cerr << "FP Add Pipe:\t||";
 		for(	pstg = _FPApipe.begin(); pstg != _FPApipe.end(); pstg++	)
 		{
-			cout << (*pstg).traceLineNo << "\t|";
+			cerr << (*pstg).traceLineNo << "\t|";
 		}
-		cout << "|" << endl;
+		cerr << "|" << endl;
 
-		cout << "_____________________________________________________"<< endl;
-		cout << "ALU 1 Pipe:\t||";
+		cerr << "_____________________________________________________"<< endl;
+		cerr << "ALU 1 Pipe:\t||";
 		for(	pstg = _ALU1pipe.begin(); pstg != _ALU1pipe.end(); pstg++	)
 		{
-			cout << (*pstg).traceLineNo << "\t|";
+			cerr << (*pstg).traceLineNo << "\t|";
 		}
-		cout << "|" << endl;
+		cerr << "|" << endl;
 
-		cout << "_____________________________________________________"<< endl;
-		cout << "ALU 2 Pipe:\t||";
+		cerr << "_____________________________________________________"<< endl;
+		cerr << "ALU 2 Pipe:\t||";
 		for(	pstg = _ALU2pipe.begin(); pstg != _ALU2pipe.end(); pstg++	)
 		{
-			cout << (*pstg).traceLineNo << "\t|";
+			cerr << (*pstg).traceLineNo << "\t|";
 		}
-		cout << "|" << endl;
+		cerr << "|" << endl;
 
-		cout << "_____________________________________________________"<< endl;
-		cout << "LS 1 Pipe:\t||";
+		cerr << "_____________________________________________________"<< endl;
+		cerr << "LS 1 Pipe:\t||";
 		for(	pstg = _LS1pipe.begin(); pstg != _LS1pipe.end(); pstg++	)
 		{
-			cout << (*pstg).traceLineNo << "\t|";
+			cerr << (*pstg).traceLineNo << "\t|";
 		}
-		cout << "|" << endl;
+		cerr << "|" << endl;
 	}
 
 	virtual ~InstPipeStage(){}

@@ -72,15 +72,15 @@ public:
 		std::queue<int> printme = *this;
 		int i = 0;
 		int value;
-		cout << "[ ";
+		cerr << "[ ";
 		while(!printme.empty())
 		{
 			value = printme.front();
 			printme.pop();
-			std::cout << "< " << i << "," << value << "> ," << std::endl;
+			std::cerr << "< " << i << "," << value << "> ," << std::endl;
 			i++;
 		}
-		cout <<"]" << std::endl;
+		cerr <<"]" << std::endl;
 	}
 
 	virtual~freeRegList(){}
@@ -119,13 +119,13 @@ public:
 	void print()
 	{
 		RegMapKey key;
-		cout << "[" << endl;
+		cerr << "[" << endl;
 		for(regmaptableIterator it = this->begin(); it != this->end(); it++)
 		{
 			key.Key = it->first;
-			cout << "<key: { ISA_reg: " << key.ISAReg  << ", instance: " << key.ISAInstanceCounter << "}, mach_reg: " << it->second <<">," << endl;
+			cerr << "<key: { ISA_reg: " << key.ISAReg  << ", instance: " << key.ISAInstanceCounter << "}, mach_reg: " << it->second <<">," << endl;
 		}
-		cout << "]" << endl;
+		cerr << "]" << endl;
 	}
 
 	virtual~regmaptable(){}

@@ -15,12 +15,16 @@
 #include "InstDecode.h"
 #include "InstSched.h"
 #include "ROB.h"
+#include "userinterface.h"
 
 
 using namespace std;
 using namespace R10k;
 
 int main() {
+
+	//User interface
+	UserInterface UI;	//Creates some terminals and initializes the terminal widgets bla bla
 
 //Debug file only
 	std::vector<traceinstruction> instructionstream;
@@ -35,21 +39,25 @@ int main() {
 	ISAreginstance 		r10kRegMapDisambiguator;	//Shared hardware between ROB Decode //this should wrap around, so the ROB may not be larger than 2^16
 
 
-	ROB 				r10kROB(&FreeRegList,
-								&r10kRegisterMap/*,
-								&r10kRegMapDisambiguator*/);		//Shared Hardware
+	ROB 				r10kROB(&UI,					//Shared User interface
+								&FreeRegList,
+								&r10kRegisterMap	);	//Shared Hardware
 
 	InstPipeStage 		r10kExecutionPipes(&r10kROB);
 
 	InstSchedStage 		r10kScheduler(	&r10kROB,					//Must resolve met dependencies using the ROB
 										&r10kExecutionPipes);		//Scheduler must fill pipes.
 
-	InstDecodeStage 	debugme(&r10kScheduler,			//Decoder must fill the Scheduler queues.
+	InstDecodeStage 	debugme(&UI,
+								&r10kScheduler,			//Decoder must fill the Scheduler queues.
 								&r10kROB,				//Decoder must make new entries in ROB
 								&FreeRegList,
 								&r10kRegisterMap,
 								&r10kRegMapDisambiguator);	//Needs to be able to add decoded instructions to the r10k ROB
 
+	//Redirect system IO to terminal (cout and printf)
+	redirectStdinIO(UI);
+	//TODO Make use of second debug terminal redirectallIO(UI)
 
 	while (std::getline(fulltrace, traceline))
 	{
@@ -62,6 +70,11 @@ int main() {
 //{LOGIC
 		//DECODE AND REMAP REGISTERS
 		debugme.Decode(traceinstruction(traceline,tracelinenumber));
+//DEBUG ONLY SHOULD BE SYNCED WITH ALL OTHER SYNC LOGIC
+		//test blitting
+		debugme.risingEdge();
+//END DEBUG ONLY TO BE SYNCED WITH ALL OTHER SYNC LOGIC
+
 //		r10kROB.printRobEntry(tracelinenumber);						//This should show the newly added trace line in the ROB
 
 		//SCHEDULE ANY INSTRUCTIONS POSSIBLE (SHOULD TAKE INPUT FROM RETIREMENT BUFFER)
@@ -72,28 +85,32 @@ int main() {
 
 //DEBUG SCHEDULER WITH INFLIGHT (EARLY DEBUG)
 /*		if(r10kScheduler.promoQueueToPipe())
-			cout << "successful queue promotion" << endl;
+			cerr << "successful queue promotion" << endl;
 		else
-			cout << "queue promotion failed" << endl;
+			cerr << "queue promotion failed" << endl;
 */
 		tracelinenumber++;
 //TO DO: all emulation :(
 	}
 
-	cout << "ROB after decoding all instructions" << endl;
+	cerr << "ROB after decoding all instructions" << endl;
 	r10kROB.printRob();
+//DEBUG ONLY THIS SHOULD BE CALLED EVERY TIME THAT THE ROB COMBINATIONAL LOGIC FIRES
+	//test the screen blitting of the UI
+	r10kROB.risingEdge();
+//END DEBUG ONLY
 
 //DEBUG, CHECK THE PROMOTION OF THE SCHEDULER WORKED
-	cout << "Scheduler Queues before promoting any instructions to pipe:" << endl;
+	cerr << "Scheduler Queues before promoting any instructions to pipe:" << endl;
 	r10kScheduler.printInstructionQueues();
 
 	if(r10kScheduler.promoQueueToPipe())
-		cout << "successful queue promotion" << endl;
+		cerr << "successful queue promotion" << endl;
 
-	cout << "Scheduler Queues after promoting to Pipe (NO retired): " << endl;
+	cerr << "Scheduler Queues after promoting to Pipe (NO retired): " << endl;
 	r10kScheduler.printInstructionQueues();
-	cout << "Pipes after promotion:" << endl;
-	cout << "----------------------------CK 1----------------------------" << endl;
+	cerr << "Pipes after promotion:" << endl;
+	cerr << "----------------------------CK 1----------------------------" << endl;
 	r10kExecutionPipes.RetirePipes();
 	r10kExecutionPipes.print();						//RETIRES TO ROB
 
@@ -102,15 +119,15 @@ int main() {
 	while(debug < 3)
 	{
 		r10kROB.retireEntry(debug);
-		cout << "Retired trace line :" << debug << endl;
+		cerr << "Retired trace line :" << debug << endl;
 		debug++;
 	}
 
-	cout << "ROB after retiring 3 instructions" << endl;*/
+	cerr << "ROB after retiring 3 instructions" << endl;*/
 
 //DEBUG THE INSTRUCTION PIPELINE
-	cout << "Manualy stuffing Pipes" << endl;
-	cout << "----------------------------CK 2----------------------------" << endl;
+	cerr << "Manualy stuffing Pipes" << endl;
+	cerr << "----------------------------CK 2----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -118,7 +135,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "----------------------------CK 3----------------------------" << endl;
+	cerr << "----------------------------CK 3----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -126,7 +143,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "----------------------------CK 4----------------------------" << endl;
+	cerr << "----------------------------CK 4----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -134,29 +151,29 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "ROB after pipe stuffing" << endl;
+	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();
 	//Now Commit the ROB entries and free the architectural registers
-	cout << endl << endl;
-	cout << "================================================================"<< endl << endl;
+	cerr << endl << endl;
+	cerr << "================================================================"<< endl << endl;
 
 //Check the SCHEDULER will be able to promote all instructions with dependencies
-	cout << "try to schedule again, now that dependencies have been met" << endl;
+	cerr << "try to schedule again, now that dependencies have been met" << endl;
 
 	if(r10kScheduler.promoQueueToPipe())
-		cout << "Scheduler: promoting instruction queues" << endl;
+		cerr << "Scheduler: promoting instruction queues" << endl;
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
-	cout << "Pipes after promotion" << endl;
+	cerr << "Pipes after promotion" << endl;
 	r10kScheduler.printInstructionQueues();
-	cout << endl << endl;
-//USELESS	cout << "Printing scheduled instructions" << endl;
+	cerr << endl << endl;
+//USELESS	cerr << "Printing scheduled instructions" << endl;
 //USELESS	r10kScheduler.printArbitrationStruct();
-	cout << "EX Pipes after promotion:" << endl;
-	cout << "----------------------------CK 1----------------------------" << endl;
+	cerr << "EX Pipes after promotion:" << endl;
+	cerr << "----------------------------CK 1----------------------------" << endl;
 	r10kExecutionPipes.print();
 
-	cout << "Manualy stuffing Pipes" << endl;
-	cout << "----------------------------CK 2----------------------------" << endl;
+	cerr << "Manualy stuffing Pipes" << endl;
+	cerr << "----------------------------CK 2----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -164,7 +181,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "----------------------------CK 3----------------------------" << endl;
+	cerr << "----------------------------CK 3----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -172,7 +189,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "----------------------------CK 4----------------------------" << endl;
+	cerr << "----------------------------CK 4----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -180,32 +197,32 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "ROB after pipe stuffing" << endl;
+	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();
 //DEBUG TO CHECK COMMIT WORKS
 	r10kROB.commitTailInstructions(4);
 
-	cout << "ROB after attempting to commit 4 instructions" << endl;
+	cerr << "ROB after attempting to commit 4 instructions" << endl;
 	r10kROB.printRob();
 
-	cout << "With trace 1, this will not commit 4 because the last instruction has a dependence on the third" << endl;
+	cerr << "With trace 1, this will not commit 4 because the last instruction has a dependence on the third" << endl;
 
-	cout << "================================================================================================" <<endl;
+	cerr << "================================================================================================" <<endl;
 
-	cout << "try to schedule LS stage again, now that dependencies have been met" << endl;
+	cerr << "try to schedule LS stage again, now that dependencies have been met" << endl;
 
 	if(r10kScheduler.promoQueueToPipe())
-		cout << "Scheduler: promoting instruction queues" << endl;
+		cerr << "Scheduler: promoting instruction queues" << endl;
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
-	cout << "Pipes after promotion" << endl;
+	cerr << "Pipes after promotion" << endl;
 	r10kScheduler.printInstructionQueues();
-	cout << endl << endl;
-	cout << "EX Pipes after promotion:" << endl;
-	cout << "----------------------------CK 1----------------------------" << endl;
+	cerr << endl << endl;
+	cerr << "EX Pipes after promotion:" << endl;
+	cerr << "----------------------------CK 1----------------------------" << endl;
 	r10kExecutionPipes.print();
 
-	cout << "Manualy stuffing Pipes" << endl;
-	cout << "----------------------------CK 2----------------------------" << endl;
+	cerr << "Manualy stuffing Pipes" << endl;
+	cerr << "----------------------------CK 2----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -213,7 +230,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "----------------------------CK 3----------------------------" << endl;
+	cerr << "----------------------------CK 3----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -221,7 +238,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "----------------------------CK 4----------------------------" << endl;
+	cerr << "----------------------------CK 4----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
@@ -229,20 +246,20 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
-	cout << "ROB after pipe stuffing" << endl;
+	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();
 //DEBUG TO CHECK COMMIT WORKS
 	r10kROB.commitTailInstructions(4);
 
-	cout << "ROB after final commit" << endl;
+	cerr << "ROB after final commit" << endl;
 	r10kROB.commitTailInstructions(4);
 
 
-	cout << endl;
+	cerr << endl;
 //DEBUG ONLY, SEE WHAT registers are free
-/*	cout << "r10k reg map" << endl;
+/*	cerr << "r10k reg map" << endl;
 	r10kRegisterMap.print();
-	cout << "r10k free reg list" << endl;
+	cerr << "r10k free reg list" << endl;
 	FreeRegList.print();*/
 
 	debug = 0;
@@ -260,6 +277,6 @@ int main() {
 	}*/
 
 
-	cout << "Columbiano yea you know I lu dat" << endl; // prints !!!Hello World!!!
+	cerr << "Columbiano yea you know I lu dat" << endl; // prints !!!Hello World!!!
 	return 0;
 }
