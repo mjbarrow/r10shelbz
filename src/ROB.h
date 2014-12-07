@@ -66,6 +66,7 @@ public:
 			regmaptable* 	rmt			)
 	{
 		head = tail 	= 0;
+		_issuePortHead 	= 0;
 		_ui 			= ui;
 		_FreeRegList 	= FreeRegList;
 		_regMapTable 	= rmt;
@@ -73,7 +74,9 @@ public:
 	}
 
 	//Project spec function
-	void risingEdge();
+	void risingEdge();		//Take in instructions from the Execution pipes here, get rid of old (commit)
+	void fallingEdge();		//Make registers available to the scheduler same cycle (retire)
+							//They were clocked in from the Execution pipes
 
 	int getHead()							{return head;}
 	int getTail()							{return tail;}
@@ -82,25 +85,40 @@ public:
 	void printRob()							{unsigned int i; for(i = 0; i < ROBbuffer.size(); i++){printBufferLine(i);}}
 
 //TODO: the instantiation cycle should be fixed up when a clock is added
-	void addEntry(traceinstruction value);	//Add this trace line into the ROB
-//FOR DEBUG ONLY
-	bool retireEntry(unsigned int entryindex){if((entryindex < ROBbuffer.size()) && (entryindex <= ROBSize))ROBbuffer[entryindex].retired = true; return true;}
-	bool retireEntry(traceinstruction retire);	//Long version, used by scheduler
-	void commitTailInstructions(int count); //Will commit this many instructions to memory from ROB
+	void addEntry(traceinstruction value)
+	{
+		_issuedInsts[_issuePortHead] = value;
+		_issuePortHead++;
+		if(_issuePortHead == ISSUEWAYCOUNT)
+			_issuePortHead = 0;
+	};	//Add this trace line into the ROB
 
-	bool isDependencyMet(unsigned short machinereg);
+	void retireEntry(	int retireport,													//Ex pipes call this during calc.
+						traceinstruction retire){_retirePorts[retireport] = retire;}	//To ensure forwarding, it is acted on during fallingEdge()
+
+	bool isDependencyMet(unsigned short machinereg);	//Used by scheduler to check dependencies
+														//Must be called after "retireEntry()"
 
 	virtual ~ROB();
 
 private:
 	unsigned int 		head;
 	unsigned int 		tail;
+	int					_issuePortHead;
 	freeRegList* 		_FreeRegList;	//The ROB needs this when committing. It will free registers from here
 	regmaptable* 		_regMapTable;	//Also needed when committing, to remove
 	UserInterface*		_ui;			//Need this to blit out to the user interface
-//DO NOT TOUCH.	ISAreginstance* 	_ISAregmap;	//Invalid machine to architecture register maps
+
+	traceinstruction _retirePorts[RETIREPORTCOUNT];
+	traceinstruction _issuedInsts[ISSUEWAYCOUNT];
+
 
 	std::vector<robEntry>ROBbuffer;
+
+	void _issuedInstsToROB();				//Add the _issuedInsts to ROB on the clock risingEdge()
+	bool _retireEntry(unsigned int entryindex){if((entryindex < ROBbuffer.size()) && (entryindex <= ROBSize))ROBbuffer[entryindex].retired = true; return true;}
+
+	void _commitTailInstructions(int count); //Will commit this many instructions to memory from ROB
 
 
 	//Convert the buffer line into a string. Usefull for debug.

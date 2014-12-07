@@ -26,6 +26,19 @@ using namespace std;
 #define ALUQPORTCOUNT	4
 #define ADDQPORTCOUNT	4
 
+
+//ROB ish
+#define COMMITPORTCOUNT	4
+
+#define RETIREPORTCOUNT	5
+#define ISSUEWAYCOUNT	4
+
+#define FPMRETIREPORT	0
+#define FPARETIREPORT	1
+#define ALUARETIREPORT	2
+#define ALUBRETIREPORT	3
+#define LSARETIREPORT	4
+
 //instruction reg types represent the 4 possible uses of a machine register in an instruction
 #define badregtype -1
 #define instD 	1

@@ -91,7 +91,8 @@ int main() {
 //ID CALC
 	debugme.calc();								//Do calculation on data just clocked in
 //SCHED CALC
-	r10kScheduler.calc();
+	r10kROB.fallingEdge();//this ensures all ROB activity is done before  scheduling
+	r10kScheduler.calc();	//see r10k paper
 	//r10kScheduler.printInstructionQueues();
 //EX CALC
 	r10kExecutionPipes.calc();
@@ -126,9 +127,11 @@ int main() {
 //IF CALC
 	//TBD
 //ID CALC
+
 	debugme.calc();
 //SCHED CALC
-	r10kScheduler.calc();
+	r10kROB.fallingEdge();//this ensures all ROB activity is done before  scheduling
+	r10kScheduler.calc();	//see r10k paper
 	//r10kScheduler.printInstructionQueues();
 //EX CALC
 	r10kExecutionPipes.calc();
@@ -144,7 +147,7 @@ int main() {
 	//r10kScheduler.printInstructionQueues();
 	//EX CK
 	r10kExecutionPipes.risingEdge();
-
+/*
 	//END ALL CK
 //Get next lot of stuff in from the input file
 
@@ -185,15 +188,6 @@ int main() {
 	r10kExecutionPipes.print();						//RETIRES TO ROB
 	r10kExecutionPipes.risingEdge();
 
-/*	debug = 0;
-	while(debug < 3)
-	{
-		r10kROB.retireEntry(debug);
-		cerr << "Retired trace line :" << debug << endl;
-		debug++;
-	}
-
-	cerr << "ROB after retiring 3 instructions" << endl;*/
 
 //DEBUG THE INSTRUCTION PIPELINE
 	cerr << "Manualy stuffing Pipes" << endl;
@@ -284,7 +278,7 @@ int main() {
 //dbg
 	r10kROB.risingEdge();
 //DEBUG TO CHECK COMMIT WORKS
-	r10kROB.commitTailInstructions(4);
+	//r10kROB.commitTailInstructions(4);
 
 	cerr << "ROB after attempting to commit 4 instructions" << endl;
 	r10kROB.printRob();
@@ -344,32 +338,17 @@ int main() {
 //dbg
 	r10kROB.risingEdge();
 //DEBUG TO CHECK COMMIT WORKS
-	r10kROB.commitTailInstructions(4);
+	//r10kROB.commitTailInstructions(4);
 
 	cerr << "ROB after final commit" << endl;
-	r10kROB.commitTailInstructions(4);
+	//r10kROB.commitTailInstructions(4);
 
 
 	cerr << endl;
-//DEBUG ONLY, SEE WHAT registers are free
-/*	cerr << "r10k reg map" << endl;
-	r10kRegisterMap.print();
-	cerr << "r10k free reg list" << endl;
-	FreeRegList.print();*/
+
 
 	debug = 0;
-/*	while(tracelinenumber--)
-	{
-//TODO: ALL OF THIS LOGIC MUST BE FULLY DEBUGGED!!!!
-
-		//No instruction will successfully commit unless it is retired
-		r10kROB.retireEntry(debug);
-		//Commit the first tail instruction
-		r10kROB.commitTailInstructions(1);
-		//verify that the tail instruction was committed
-		r10kROB.printRobEntry(debug);
-		debug++;
-	}*/
+*/
 
 
 	cerr << "Columbiano yea you know I lu dat" << endl; // prints !!!Hello World!!!

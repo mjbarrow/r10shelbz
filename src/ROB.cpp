@@ -20,6 +20,11 @@ void ROB::risingEdge()
 	vector<string> stringROB;
 	unsigned int i;
 
+	//Commit old instructions. They will go away forever to memory.
+	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
+	//Add the new instructions into the ROB. They will live until pipes commit them
+	_issuedInstsToROB();
+
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
 	for(i = 0; i < ROBbuffer.size(); i++)
@@ -35,24 +40,48 @@ void ROB::risingEdge()
 
 //TODO: this needs to be fixed up with clock because it has no
 //Clock cycle value in the newEntry
-void ROB::addEntry(traceinstruction value)
+void ROB::_issuedInstsToROB()//addEntry(traceinstruction value)
 {
-	robEntry newEntry(&value);
+	robEntry newEntry;
+//	robEntry newEntry(&value);
+	int i = 0;
+	while(i < ISSUEWAYCOUNT)
+	{
+		//Add all of the outstanding instructions to the ROB...
 
-	if(ROBbuffer.size() <= head)
-	{
-		ROBbuffer.push_back(newEntry);
-		head++;
-		if(head >= ROBSize)		//Make the ROB circular, so you could have overflow problems
-			head = 0;
+		//Create a new ROB entry
+		if(_issuedInsts[_issuePortHead].intOp != BADOpcode)
+		{
+			//If something exists at this port,
+			newEntry = robEntry(&_issuedInsts[_issuePortHead]);	//Make a new ROB entry
+
+			if((ROBbuffer.size() <= head) && (head < ROBSize))	//Ugh, circular buffer house keeping...
+			{
+				ROBbuffer.push_back(newEntry);					//Add new ROB entry to ROB
+				head++;											//Be sure not to overwrite it next time!
+				if(head >= ROBSize)		//Make the ROB circular, so you could have overflow problems
+					head = 0;
+			}
+			else
+			{
+				ROBbuffer[head] = newEntry;
+				head++;
+				if(head >= ROBSize)		//Make the ROB circular, so you could have overflow problems
+					head = 0;
+			}
+
+			//Nuke port value for next time...
+			_issuedInsts[_issuePortHead] = traceinstruction();
+		}
+
+		//Index house keeping for the loop...
+		_issuePortHead++;
+		if(_issuePortHead == ISSUEWAYCOUNT)
+			_issuePortHead = 0;
+		i++;
 	}
-	else
-	{
-		ROBbuffer[head] = newEntry;
-		head++;
-		if(head >= ROBSize)		//Make the ROB circular, so you could have overflow problems
-			head = 0;
-	}
+
+
 }
 
 //TODO: this should be synchronised with clock. It is not
@@ -76,7 +105,7 @@ bool ROB::isDependencyMet(unsigned short machinereg)
 
 //TODO: this should be synchronised with clock. It is not
 
-void ROB::commitTailInstructions(int count)
+void ROB::_commitTailInstructions(int count)
 {
 	RegMapKey ISARegToUnmap;				//Use to disambiguate and clear register maps.
 	robEntry commitme;						//another working variable
@@ -133,18 +162,27 @@ bool ROB::isFull()
 	return false;
 }
 
-bool ROB::retireEntry(traceinstruction retire)
+//Perform the retirement of all instructions at the port pipes
+//On the clock falling edge
+void ROB::fallingEdge()//_retireEntry(traceinstruction retire)
 {
 	vector<robEntry>::iterator i;
-	if(retire.intOp == BADOpcode)			//if this is some weird value just dont even bother trying to retire
-		return false;
+	int loop;
 
-	for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)
+	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
 	{
-		if ((*i).m_rd.Key == retire.m_rd.Key)
-			{(*i).retired = true; return true;}				//Cool! was able to retire an instruction!
+		if(_retirePorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
+		{
+			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
+			{
+				if ((*i).m_rd.Key == _retirePorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+					(*i).retired = true;							//Retire that instruction in the ROB
+			}														//Now the scheduler will know another register is ready
+		}
+		_retirePorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
+													//If the execution pipes don't do anything next cycle
 	}
-	return false;
+		//return false;
 }
 
 } /* namespace R10k */
