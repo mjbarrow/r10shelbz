@@ -20,6 +20,12 @@ using namespace std;
 #define renameRegCount 	64
 #define ROBSize			48
 
+#define MAXDECODEDINSTPERCYCLE 4
+
+#define FPQPORTCOUNT	4
+#define ALUQPORTCOUNT	4
+#define ADDQPORTCOUNT	4
+
 //instruction reg types represent the 4 possible uses of a machine register in an instruction
 #define badregtype -1
 #define instD 	1

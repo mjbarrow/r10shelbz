@@ -26,6 +26,9 @@ void ROB::risingEdge()
 	{
 		stringROB.push_back(bufferLineToString(i));
 	}
+	if(stringROB.size() == 0)
+		stringROB.push_back("empty");
+
 	//trigger the blit function so that the screen output is refreshed of the ROB content
 	_ui->blitROBList(&stringROB);
 }

@@ -15,7 +15,9 @@
 #include "instructions.h"
 #include "InstPipe.h"
 #include "ROB.h"			//This needs to do something to the ROB? Actually I dont think so...
+#include "userinterface.h"
 
+//This is used for debug, so is much more verbose than what appears in the UI version
 #define PrintQueueEntry(i,x) 				cerr << "<|| #" << i;	\
 											cerr << ":\t|";			\
 											cerr << "tr# " << (*x).traceLineNo;	\
@@ -33,6 +35,17 @@
 											cerr <<	"m_rd: " <<hex<<"0x"<< (*x).m_rd.machineReg << " <- m_rs:" <<hex<<"0x"<< (*x).m_rs << " "+(*x).strOp+" m_rt: " <<hex<<"0x"<< (*x).m_rt;\
 											cerr << "\t||>," << endl;
 
+//Version used for UI
+#define PrintQueueSummary(s,x)		s << "| ins#:" << x.traceLineNo;	\
+									s << "| op: " 	<< x.strOp;			\
+									if((x.m_rs_rdy && x.m_rt_rdy))		\
+										s << "| READY!";				\
+									else if((!x.m_rs_rdy) && x.m_rt_rdy)\
+										s << "| Wait: Prs";				\
+									else if((!x.m_rt_rdy) && x.m_rs_rdy)\
+										s << "| Wait: Prt";				\
+									else if((x.m_rs_rdy || x.m_rt_rdy))	\
+										s << "Wait: Prs+Prt";
 
 using namespace std;
 
@@ -97,17 +110,26 @@ public:
 
 class InstSchedStage {
 public:
-	InstSchedStage(	ROB* 			ROB,
+	InstSchedStage(	UserInterface*	ui,
+					ROB* 			ROB,
 					InstPipeStage* 	pPipes)
 	{
-		_ROB = ROB;
-		_pPipes = pPipes;
-		_scheduledInstructions.scheduledFPM = 	_FPInstructionQueue.end();
-		_scheduledInstructions.scheduledFPA = 	_FPInstructionQueue.end();
-		_scheduledInstructions.scheduledALU1 = 	_ALUInstructionQueue.end();
-		_scheduledInstructions.scheduledALU2 = 	_ALUInstructionQueue.end();
-		_scheduledInstructions.scheduledLS1 = 	_LSInstructionQueue.end();
+		_ui 									= ui;
+		_ROB 									= ROB;
+		_pPipes 								= pPipes;
+		_scheduledInstructions.scheduledFPM 	= _FPInstructionQueue.end();
+		_scheduledInstructions.scheduledFPA 	= _FPInstructionQueue.end();
+		_scheduledInstructions.scheduledALU1 	= _ALUInstructionQueue.end();
+		_scheduledInstructions.scheduledALU2 	= _ALUInstructionQueue.end();
+		_scheduledInstructions.scheduledLS1 	= _LSInstructionQueue.end();
+		_DFPQidx 								= 0;
+		_DALUQidx 								= 0;
+		_DLSQidx								= 0;
 	}
+
+	//Project spec function
+	void risingEdge();					//perform register swizelling using the input ports and refresh output
+	void calc();//promoQueueToPipe()	//Actually try to schedule instructions
 
 	//The Scheduler class should check this before trying to call pushInstruction
 	bool isFPQueueFull()						{if(_FPInstructionQueue.size() 	>= 16)return true; return false;}
@@ -119,8 +141,6 @@ public:
 	bool pushALUInstruction(traceinstruction i);
 	bool pushLSInstruction(traceinstruction i);
 
-//Called externally
-	bool promoQueueToPipe();
 
 	void printInstructionQueues()
 	{
@@ -165,13 +185,28 @@ public:
 	virtual ~InstSchedStage();
 
 private:
-	ROB* 					_ROB;
-	InstPipeStage*			_pPipes;
+	ROB* 				_ROB;
+	InstPipeStage*		_pPipes;
 
-	arbitrationStruct		_scheduledInstructions;
-	FPQueue 				_FPInstructionQueue;
-	ALUQueue				_ALUInstructionQueue;
-	LSQueue					_LSInstructionQueue;
+	arbitrationStruct	_scheduledInstructions;
+	FPQueue 			_FPInstructionQueue;
+	ALUQueue			_ALUInstructionQueue;
+	LSQueue				_LSInstructionQueue;
+	UserInterface*		_ui;			//Need this to blit out to the user interface
+
+	//Logic related stuff
+	//These are to let the Decoder stage load up ports to this stage
+	//Array representing input ports
+	FPQueueEntry 	_DFPQueue[FPQPORTCOUNT];
+	int 			_DFPQidx;
+	ALUQueueEntry 	_DALUQueue[ALUQPORTCOUNT];
+	int 			_DALUQidx;
+	LSQueueEntry 	_DLSQueue[ADDQPORTCOUNT];
+	int				_DLSQidx;
+
+	//End logic related stuff
+
+
 	//The Execution unit
 
 	//Fix Dependencies 		(combinational logic)
@@ -184,6 +219,53 @@ private:
 	void _getFirsttwoALU(FPQueueEntryiterator* oldALU1, FPQueueEntryiterator* oldALU2);
 	void _getFirstLS(FPQueueEntryiterator* oldestLS);
 	void _arbitrateQueues();
+
+	//UI stuff
+	//This is output that goes to the UI only, so its much more terse than what is seen in the debug print
+	string FPQueueEntryToString(int entry)
+	{
+		string fpQEntryString ="empty";
+		ostringstream os;
+		FPQueueEntry line  = _FPInstructionQueue[entry];
+
+		PrintQueueSummary(	os,		//Print to this stream
+							line);	//This value
+
+		fpQEntryString = os.str();
+
+		return fpQEntryString;
+	}
+
+	string ALUQueueEntryToString(int entry)
+	{
+		string ALUQEntryString ="empty";;
+		ostringstream os;			//Use this to convert to string
+		FPQueueEntry line  = _ALUInstructionQueue[entry];	//Element to covert
+
+		PrintQueueSummary(			//Perform conversion
+							os,		//Print to this stream
+							line);	//This value
+
+		ALUQEntryString = os.str();	//Make the stream a string
+
+		return ALUQEntryString;		//Return string as requested :)
+	}
+
+	string LSQueueEntryToString(int entry)
+	{
+		string LSQEntryString ="empty";;
+		ostringstream os;			//Use this to convert to string
+		FPQueueEntry line  = _LSInstructionQueue[entry];	//Element to covert
+
+		PrintQueueSummary(			//Perform conversion
+							os,		//Print to this stream
+							line);	//This value
+
+		LSQEntryString = os.str();	//Make the stream a string
+
+		return LSQEntryString;		//Return string as requested :)
+	}
+
 };
 
 } /* namespace R10k */

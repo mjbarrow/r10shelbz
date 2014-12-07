@@ -43,9 +43,11 @@ int main() {
 								&FreeRegList,
 								&r10kRegisterMap	);	//Shared Hardware
 
-	InstPipeStage 		r10kExecutionPipes(&r10kROB);
+	InstPipeStage 		r10kExecutionPipes(	&UI,
+											&r10kROB);
 
-	InstSchedStage 		r10kScheduler(	&r10kROB,					//Must resolve met dependencies using the ROB
+	InstSchedStage 		r10kScheduler(	&UI,
+										&r10kROB,					//Must resolve met dependencies using the ROB
 										&r10kExecutionPipes);		//Scheduler must fill pipes.
 
 	InstDecodeStage 	debugme(&UI,
@@ -58,40 +60,83 @@ int main() {
 	//Redirect system IO to terminal (cout and printf)
 	redirectStdinIO(UI);
 	//TODO Make use of second debug terminal redirectallIO(UI)
-
-	while (std::getline(fulltrace, traceline))
+	instructionstream = vector<traceinstruction>();	//CLEAN UP THE INSTRUCTION STREAM
+	while (tracelinenumber < 4)
 	{
-		//fetch next instruction to instruction stream
-/*IGNORE FOR NOW		instructionstream.push_back(traceinstruction(traceline, tracelinenumber));
-		if(instructionstream.size() > 6)	//Have 6 instructions in "cache" try and execute them
-		{
+		if(!std::getline(fulltrace, traceline))
+			break;
+		instructionstream.push_back(traceinstruction(traceline,tracelinenumber));
 
-		}*/
-//{LOGIC
-		//DECODE AND REMAP REGISTERS
-		debugme.Decode(traceinstruction(traceline,tracelinenumber));
-//DEBUG ONLY SHOULD BE SYNCED WITH ALL OTHER SYNC LOGIC
-		//test blitting
-		debugme.risingEdge();
-//END DEBUG ONLY TO BE SYNCED WITH ALL OTHER SYNC LOGIC
-
-//		r10kROB.printRobEntry(tracelinenumber);						//This should show the newly added trace line in the ROB
-
-		//SCHEDULE ANY INSTRUCTIONS POSSIBLE (SHOULD TAKE INPUT FROM RETIREMENT BUFFER)
-		//debugme.Schedule()
-//}LOGIC
-		//Clock
-		//debugme.Clk()
-
-//DEBUG SCHEDULER WITH INFLIGHT (EARLY DEBUG)
-/*		if(r10kScheduler.promoQueueToPipe())
-			cerr << "successful queue promotion" << endl;
-		else
-			cerr << "queue promotion failed" << endl;
-*/
 		tracelinenumber++;
 //TO DO: all emulation :(
 	}
+	cerr << instructionstream.size() << "instructions " <<endl;
+
+	//DEBUG THE INSTRUCTION DECODE
+
+		//Should be called by the edge handler of the instruction fetch stage
+	debugme.setDTraceLines(&instructionstream);
+	//IF CK
+	//ID CK
+	debugme.risingEdge();							//Clock in data from SetDtraces and refresh output from last cycle (nothing
+	r10kROB.risingEdge();
+	r10kScheduler.risingEdge();
+	r10kScheduler.printInstructionQueues();
+	//END ALL CK
+//ID CALC
+	debugme.calc();								//Do calculation on data just clocked in
+//SCHED CALC
+	r10kScheduler.calc();
+	r10kScheduler.printInstructionQueues();
+//IF CALC
+	instructionstream = vector<traceinstruction>();	//CLEAN UP THE INSTRUCTION STREAM
+	while (tracelinenumber < 8)		//Fill instruction stream (kinda)
+	{
+		if(!std::getline(fulltrace, traceline))
+			break;
+		instructionstream.push_back(traceinstruction(traceline,tracelinenumber));
+		tracelinenumber++;
+
+	}
+	cerr << instructionstream.size() << "instructions " <<endl;
+
+
+	debugme.setDTraceLines(&instructionstream);
+//END ALL CALC
+	//IF CK
+	//ID CK
+	debugme.risingEdge();					//Clock in new data (nothing) and display output from last stage
+	r10kROB.risingEdge();
+	r10kScheduler.risingEdge();
+	r10kScheduler.printInstructionQueues();
+	//END ALL CK
+//IF CALC
+	//TBD
+//ID CALC
+	debugme.calc();
+//SCHED CALC
+	r10kScheduler.calc();
+	r10kScheduler.printInstructionQueues();
+//END ALL CALC
+	//IF CK
+	//ID CK
+	debugme.risingEdge();					//Clock in new data (nothing) and display output from last stage
+	r10kROB.risingEdge();
+	//SCHED CK
+	r10kScheduler.risingEdge();
+	r10kScheduler.printInstructionQueues();
+	//END ALL CK
+//Get next lot of stuff in from the input file
+
+
+								//Do calculation on data just clocked in
+
+
+//BUG! STRAY REGISTER!!!
+//NOBUG	r10kRegisterMap.print();
+
+	//END DEBUG THE INSTRUCTION DECODE
+
 
 	cerr << "ROB after decoding all instructions" << endl;
 	r10kROB.printRob();
@@ -103,17 +148,22 @@ int main() {
 //DEBUG, CHECK THE PROMOTION OF THE SCHEDULER WORKED
 	cerr << "Scheduler Queues before promoting any instructions to pipe:" << endl;
 	r10kScheduler.printInstructionQueues();
+//DEBUG, CHECK THE INSTRUCTION QUEUE PRINT
+	r10kScheduler.risingEdge();
+//END DEBUG
 
-	if(r10kScheduler.promoQueueToPipe())
+	r10kScheduler.calc();
 		cerr << "successful queue promotion" << endl;
 
 	cerr << "Scheduler Queues after promoting to Pipe (NO retired): " << endl;
 	r10kScheduler.printInstructionQueues();
+//DEBUG, CHECK THE INSTRUCTION QUEUE PRINT
+	r10kScheduler.risingEdge();
+//END DEBUG
 	cerr << "Pipes after promotion:" << endl;
 	cerr << "----------------------------CK 1----------------------------" << endl;
-	r10kExecutionPipes.RetirePipes();
 	r10kExecutionPipes.print();						//RETIRES TO ROB
-
+	r10kExecutionPipes.risingEdge();
 
 /*	debug = 0;
 	while(debug < 3)
@@ -135,6 +185,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 3----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
@@ -143,6 +194,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 4----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
@@ -151,8 +203,11 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();
+//dbg
+	r10kROB.risingEdge();
 	//Now Commit the ROB entries and free the architectural registers
 	cerr << endl << endl;
 	cerr << "================================================================"<< endl << endl;
@@ -160,17 +215,21 @@ int main() {
 //Check the SCHEDULER will be able to promote all instructions with dependencies
 	cerr << "try to schedule again, now that dependencies have been met" << endl;
 
-	if(r10kScheduler.promoQueueToPipe())
-		cerr << "Scheduler: promoting instruction queues" << endl;
+	r10kScheduler.calc();
+	cerr << "Scheduler: promoting instruction queues" << endl;
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	cerr << "Pipes after promotion" << endl;
 	r10kScheduler.printInstructionQueues();
+//DEBUG, CHECK THE INSTRUCTION QUEUE PRINT
+	r10kScheduler.risingEdge();
+//END DEBUG
 	cerr << endl << endl;
 //USELESS	cerr << "Printing scheduled instructions" << endl;
 //USELESS	r10kScheduler.printArbitrationStruct();
 	cerr << "EX Pipes after promotion:" << endl;
 	cerr << "----------------------------CK 1----------------------------" << endl;
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 
 	cerr << "Manualy stuffing Pipes" << endl;
 	cerr << "----------------------------CK 2----------------------------" << endl;
@@ -181,6 +240,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 3----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
@@ -189,6 +249,7 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 4----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
 	r10kExecutionPipes.FPAinPort(traceinstruction());
@@ -197,13 +258,18 @@ int main() {
 	r10kExecutionPipes.LSAinPort(traceinstruction());
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
+	r10kExecutionPipes.risingEdge();
 	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();
+//dbg
+	r10kROB.risingEdge();
 //DEBUG TO CHECK COMMIT WORKS
 	r10kROB.commitTailInstructions(4);
 
 	cerr << "ROB after attempting to commit 4 instructions" << endl;
 	r10kROB.printRob();
+//dbg
+	r10kROB.risingEdge();
 
 	cerr << "With trace 1, this will not commit 4 because the last instruction has a dependence on the third" << endl;
 
@@ -211,11 +277,14 @@ int main() {
 
 	cerr << "try to schedule LS stage again, now that dependencies have been met" << endl;
 
-	if(r10kScheduler.promoQueueToPipe())
+	r10kScheduler.calc();
 		cerr << "Scheduler: promoting instruction queues" << endl;
 	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
 	cerr << "Pipes after promotion" << endl;
 	r10kScheduler.printInstructionQueues();
+//DEBUG, CHECK THE INSTRUCTION QUEUE PRINT
+	r10kScheduler.risingEdge();
+//END DEBUG
 	cerr << endl << endl;
 	cerr << "EX Pipes after promotion:" << endl;
 	cerr << "----------------------------CK 1----------------------------" << endl;
@@ -248,6 +317,8 @@ int main() {
 	r10kExecutionPipes.print();
 	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();
+//dbg
+	r10kROB.risingEdge();
 //DEBUG TO CHECK COMMIT WORKS
 	r10kROB.commitTailInstructions(4);
 

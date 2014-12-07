@@ -13,12 +13,95 @@ InstSchedStage::~InstSchedStage() {
 	// TODO Auto-generated destructor stub
 }
 
+//====================================================================================================
+//								PROJECT SPEC FUNCTIONS
+//====================================================================================================
+//Project spec function
+void InstSchedStage::risingEdge()
+{
+	vector<string> stringFPInsQueue;
+	vector<string> stringALUInsQueue;
+	vector<string> stringLSInsQueue;
+	unsigned int i;
+
+	//DO register swizzle By reading in the input ports to this stage
+	//Input ports are set using "pushFPInstruction()" by a connected driving stage "calc()" method.
+
+	//Check all input ports and if any port has an instruction, add it to the
+	//FP instruction queue to be executed when dependencies are resolved
+	for(i = 0; i < FPQPORTCOUNT; i++)
+	{
+		if(_DFPQueue[_DFPQidx].intOp != BADOpcode)
+			_FPInstructionQueue.push_back(_DFPQueue[_DFPQidx]);	//Add something to the execution pipes if this port has data
+
+		_DFPQueue[_DFPQidx] = FPQueueEntry();	//Clear the port in case the connected stage does not set it next cycle
+		_DFPQidx++;
+
+		if(_DFPQidx == FPQPORTCOUNT)	//Index has to wrap around so we end this risingEdge having
+			_DFPQidx = 0;	//Not affected the position of the input port index
+	}
+
+	for(i = 0; i < ALUQPORTCOUNT; i++)
+	{
+		if(_DALUQueue[_DALUQidx].intOp != BADOpcode)
+			_ALUInstructionQueue.push_back(_DALUQueue[_DALUQidx]);	//Add something to the execution pipes if this port has data
+
+		_DALUQueue[_DALUQidx] = ALUQueueEntry();	//Clear the port in case the connected stage does not set it next cycle
+		_DALUQidx++;
+
+		if(_DALUQidx == ALUQPORTCOUNT)	//Index has to wrap around so we end this risingEdge having
+			_DALUQidx = 0;	//Not affected the position of the input port index
+	}
+
+	for(i = 0; i < ADDQPORTCOUNT; i++)
+	{
+		if(_DLSQueue[_DLSQidx].intOp != BADOpcode)
+			_LSInstructionQueue.push_back(_DLSQueue[_DLSQidx]);	//Add something to the execution pipes if this port has data
+
+		_DLSQueue[_DLSQidx] = LSQueueEntry();	//Clear the port in case the connected stage does not set it next cycle
+		_DLSQidx++;
+
+		if(_DLSQidx == ALUQPORTCOUNT)	//Index has to wrap around so we end this risingEdge having
+			_DLSQidx = 0;	//Not affected the position of the input port index
+	}
+
+	//Construct the correct type of input for the blit function
+	//An array of strings which it will blit out
+	for(i = 0; i < _FPInstructionQueue.size(); i++)
+	{
+		stringFPInsQueue.push_back(FPQueueEntryToString(i));
+	}
+//	if(stringFPInsQueue.size() == 0)
+//		stringFPInsQueue.push_back("empty");
+
+	for(i = 0; i < _ALUInstructionQueue.size(); i++)
+	{
+		stringALUInsQueue.push_back(ALUQueueEntryToString(i));
+	}
+//	if(stringALUInsQueue.size() == 0)
+//		stringALUInsQueue.push_back("empty");
+
+	for(i = 0; i < _LSInstructionQueue.size(); i++)
+	{
+		stringLSInsQueue.push_back(LSQueueEntryToString(i));
+	}
+//	if(stringLSInsQueue.size() == 0)
+//		stringLSInsQueue.push_back("empty");
+
+	//trigger the blit function so that the screen output is refreshed of the queues content
+	//Blit all queues
+	_ui->blitFPQueueList(		&stringFPInsQueue	);
+	_ui->blitIntegerQueueList(	&stringALUInsQueue	);
+	_ui->blitAddressQueueList(	&stringLSInsQueue	);
+
+}
+
 //=====================================================================================================
 //						PROMOTE FROM ALL QUEUES TO THE PIPES (SCHEDULE EXECUTION)
 //=====================================================================================================
 
 
-bool InstSchedStage::promoQueueToPipe()
+void InstSchedStage::calc()//promoQueueToPipe()
 {
 	//First resolve all dependencies
 	_resolveSchedDependencies();
@@ -78,8 +161,6 @@ bool InstSchedStage::promoQueueToPipe()
 	_scheduledInstructions.scheduledALU2 = 	_ALUInstructionQueue.end();
 	_scheduledInstructions.scheduledLS1 = 	_LSInstructionQueue.end();
 
-
-	return true;
 }
 
 //==============================================================================================
@@ -163,7 +244,10 @@ bool InstSchedStage::pushFPInstruction(traceinstruction i)
 	if(_FPInstructionQueue.size() >= 16)
 		return false;
 
-	_FPInstructionQueue.push_back(_i);
+	_DFPQueue[_DFPQidx] = _i;	//There are two entries here. just fill which ever you feel like
+	_DFPQidx++;
+	if(_DFPQidx == FPQPORTCOUNT)
+		_DFPQidx = 0;
 
 	return true;	//Success
 }
@@ -175,7 +259,10 @@ bool InstSchedStage::pushALUInstruction(traceinstruction i)
 	if(_ALUInstructionQueue.size() >= 16)
 		return false;
 
-	_ALUInstructionQueue.push_back(_i);
+	_DALUQueue[_DALUQidx] = _i;
+	_DALUQidx++;
+	if(_DALUQidx == ALUQPORTCOUNT)
+		_DALUQidx = 0;
 
 	return true;	//Success
 }
@@ -187,7 +274,10 @@ bool InstSchedStage::pushLSInstruction(traceinstruction i)
 	if(_LSInstructionQueue.size() >= 16)
 		return false;
 
-	_LSInstructionQueue.push_back(_i);
+	_DLSQueue[_DLSQidx] = _i;					//Easier than the others :D
+	_DLSQidx++;
+	if(_DLSQidx == ADDQPORTCOUNT)
+		_DLSQidx = 0;
 
 	return true;	//Success
 }

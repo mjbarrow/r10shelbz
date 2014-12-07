@@ -12,14 +12,41 @@
 #include "utils.h"
 #include "instructions.h"
 #include "ROB.h"
+#include "userinterface.h"
+
+//=====================================================================================================
+//									HELPER MACROS
+//=====================================================================================================
+#define pipetostream(epipe,opcodes,destrs)	opcodes << "tr#:";													\
+											destrs	<< "Prd:";													\
+											for(vector<traceinstruction>::const_iterator pstg = epipe.begin(); pstg != epipe.end(); pstg++	)	\
+											{																	\
+												if((*pstg).intOp == BADOpcode)									\
+												{																\
+													opcodes << "| --- |";									\
+													destrs <<  "| --- |";									\
+												}																\
+												else															\
+												{																\
+													opcodes << "| 0x" << hex << (*pstg).traceLineNo << " |";	\
+													destrs << "| 0x" << hex << (*pstg).m_rd.machineReg << " |";\
+												}																\
+											}
+
+
+//======================================================================================================
+//								EXECUTION PIPE STAGE
+//======================================================================================================
 
 namespace R10k {
 
 class InstPipeStage {
 public:
 
-	InstPipeStage(ROB* pROB)//Initialize blank pipe stages
+	InstPipeStage(	UserInterface* 	ui,
+					ROB* 			pROB)//Initialize blank pipe stages
 	{
+		_ui = ui;
 		_ROB = pROB;
 
 		_FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction());
@@ -28,6 +55,9 @@ public:
 		_ALU2pipe.push_back(traceinstruction());
 		_LS1pipe.push_back(traceinstruction()); _LS1pipe.push_back(traceinstruction());
 	}
+
+	//Project spec function
+	void risingEdge();
 
 	void FPMinPort(traceinstruction FPM)	{_FPMpipe.insert(_FPMpipe.begin(),FPM);	_FPMpipe.pop_back();}
 	void FPAinPort(traceinstruction FPA)	{_FPApipe.insert(_FPApipe.begin(),FPA);	_FPApipe.pop_back();}	//As above
@@ -108,6 +138,7 @@ public:
 	virtual ~InstPipeStage(){}
 
 private:
+	UserInterface* _ui;
 	ROB* _ROB;
 
 	vector<traceinstruction> _FPMpipe;
@@ -115,6 +146,13 @@ private:
 	vector<traceinstruction> _ALU1pipe;
 	vector<traceinstruction> _ALU2pipe;
 	vector<traceinstruction> _LS1pipe;
+
+	void FPMPipeToString(vector<string>*	stringFPMpipe	);
+	void FPAPipeToString(vector<string>*	stringFPApipe	);
+	void ALU1PipeToString(vector<string>*	stringALU1pipe	);
+	void ALU2PipeToString(vector<string>*	stringALU2pipe	);
+	void LS1PipeToString(vector<string>*	stringLSpipe	);
+
 };
 
 } /* namespace R10k */

@@ -87,8 +87,8 @@ typedef struct _UIWIDGETSITEMS
 {
 	   const char**	ROBListItems;
 	 //SCHEDULE STUFF
-	   const char** 	freelistItems;
-	   const char** 	activelistItems;
+	   const char** freelistItems;
+	   const char** activelistItems;
 	   const char**	regmaptableItems;
 	 //DECODE STUFF
 	   const char**	fpQueueItems;
@@ -117,6 +117,41 @@ typedef struct _UIWIDGETSITEMS
 		   LSPipeItems		= NULL;
 	   }
 }uiWidgetsItems, *puiWidgetsItems;
+
+typedef struct _UIWIDGETSIZES
+{
+	   int	ROBListItemsCount;
+	 //SCHEDULE STUFF
+	   int freelistItemsCount;
+	   int activelistItemsCount;
+	   int	regmaptableItemsCount;
+	 //DECODE STUFF
+	   int	fpQueueItemsCount;
+	   int	addressQueueItemsCount;
+	   int	integerQueueItemsCount;
+	 //PIPES
+	   int	fpMPipeItemsCount;
+	   int	fpAPipeItemsCount;
+	   int	ALUAPipeItemsCount;
+	   int	ALUBPipeItemsCount;
+	   int	LSPipeItemsCount;
+
+	   _UIWIDGETSIZES()
+	   {
+		   ROBListItemsCount		= 0;
+		   freelistItemsCount		= 0;
+		   activelistItemsCount		= 0;
+		   regmaptableItemsCount	= 0;
+		   fpQueueItemsCount		= 0;
+		   addressQueueItemsCount	= 0;
+		   integerQueueItemsCount	= 0;
+		   fpMPipeItemsCount		= 0;
+		   fpAPipeItemsCount		= 0;
+		   ALUAPipeItemsCount		= 0;
+		   ALUBPipeItemsCount		= 0;
+		   LSPipeItemsCount			= 0;
+	   }
+}uiWidgetsItemCount, *puiWidgetsItemCount;
 
 //===============================================================================================================================================
 //							UI HELPER FUNCTIONS
@@ -191,10 +226,11 @@ private:
 	int 	_pt_stderr;
 
 //Widgets
-	CDKSCREEN* 	_cdkscreen		= (CDKSCREEN *)NULL;
-	WINDOW*		_cursesWin		= (WINDOW *)NULL;
-	uiWidgets	_interfaceWidgets;
-	uiWidgetsItems _interfaceWidgetItems;
+	CDKSCREEN* 			_cdkscreen		= (CDKSCREEN *)NULL;
+	WINDOW*				_cursesWin		= (WINDOW *)NULL;
+	uiWidgets			_interfaceWidgets;
+	uiWidgetsItems 		_interfaceWidgetItems;
+	uiWidgetsItemCount 	_interfaceWidgetItemCount;
 
 	void drawALL();
 };

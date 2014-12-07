@@ -28,12 +28,29 @@ void InstDecodeStage::risingEdge()
 	std::map<int,int>::iterator rmapit;
 	regmappair a;
 
+	//Swizzle the D and Q registers
+	int i = 0;
+
+	while(i < MAXDECODEDINSTPERCYCLE)
+	{
+		//Arranget the DBuffer into the Q buffer in a traceline indexed fashion.
+		_QTraceLines[i] =  _DTraceLines[_tracebufhead];
+		_DTraceLines[_tracebufhead] = traceinstruction();			//Blank this and never work with it again.
+		_tracebufhead++;
+		if(_tracebufhead == MAXDECODEDINSTPERCYCLE)
+			_tracebufhead = 0;
+		i++;
+	}
+
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
 	for(rmapit = _RegMapTable->begin(); rmapit != _RegMapTable->end(); rmapit++)
 	{
 		stringRegMap.push_back(regmapEntryToString(*rmapit));
 	}
+	if(stringRegMap.size() == 0)
+		stringRegMap.push_back("empty");
+
 	//trigger the blit function so that the screen output is refreshed of the ROB content
 	_ui->blitRegMapTable(&stringRegMap);
 }

@@ -174,7 +174,7 @@ using namespace std;
 #define LSAPIPETOP			(ALUBPIPETOP + ALUBPIPEHEIGHT)
 #define LSAPIPESCROLLPOS	RIGHT
 #define LSAPIPEHEIGHT		FPAPIPEHEIGHT
-#define LSAPIPEWIDTH		FLWIDTH
+#define LSAPIPEWIDTH		(FLWIDTH * 2)
 
 #define LSAPIPEDIMENSIONS	LSAPIPELEFT,		\
 							LSAPIPETOP,			\
@@ -198,24 +198,40 @@ using namespace std;
 //=========================================================================================
 //								HELPER FUNCTIONS
 //=========================================================================================
+#define		LoadEmptyItem(widget)																	\
+									{	const char* e[1] = {(const char*)"empty"};								\
+									setCDKScrollItems (	_interfaceWidgets.widget,					\
+														(char**)e,											\
+														1,											\
+														true								);	}
 //1 = ROBListItems
 //2 = _InterfaceWidgetItems.ROBListItems
 //3 = _InterfaceWidgets.ROBList
-#define		ReloadItems(newContent,widgetItems,widget)									\
+#define		ReloadItems(newContent,widgetItems,widgetItemsCount,widget)					\
 			int 						loop = 0;										\
-			const char* 				charROBListItems[newContent->size()];			\
+			const char*					charROBListItems[newContent->size()];			\
 			vector<string>::iterator 	listit;											\
 			for(listit =newContent->begin(); listit != newContent->end(); listit++)		\
 			{																			\
 				charROBListItems[loop] = convert(*listit);								\
 				loop++;																	\
 			}																			\
+			/*library bug. Remove items  if list shrank*/\
+			while(_interfaceWidgetItemCount.widgetItemsCount > loop)\
+				{\
+					_interfaceWidgetItemCount.widgetItemsCount--;\
+					deleteCDKScrollItem(_interfaceWidgets.widget,\
+										_interfaceWidgetItemCount.widgetItemsCount);\
+				}\
+				_interfaceWidgetItemCount.widgetItemsCount = loop;\
+				/*re-set list items to new list*/\
 			_interfaceWidgetItems.widgetItems = charROBListItems;						\
 			if(_interfaceWidgetItems.widgetItems == NULL)								\
-				return;																	\
+				LoadEmptyItem(widget);													\
 			setCDKScrollItems (	_interfaceWidgets.widget,								\
 								(char**)_interfaceWidgetItems.widgetItems,				\
-								newContent->size(),										\
+/*								newContent->size(),	*/									\
+								loop,													\
 								true								);
 
 
@@ -380,8 +396,9 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 	int wintermNo;
 //	  int selection, count;//junk
 	//Widgit init stuff
-	string init 	= "Ready:";
-	char* pinit[1] 	= {(char*)init.c_str()};
+	char* on	= "Booting...";
+	char* in 	= "Ready:";
+	char* pinit[2] 	= {on,in};
 //	int initcount 	= 1;
 
 
@@ -400,9 +417,9 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    cerr << "terminal lines :" << w.ws_row << endl;
    cerr << "terminal cols : " << w.ws_col << endl;
 #ifdef DEBUG
-   if(w.ws_col == 0)
+//Problems...   if(w.ws_col == 0)
 	   w.ws_col = 317;
-   if(w.ws_row == 0)
+//Problems...   if(w.ws_row == 0)
 	   w.ws_row = 87;
 #endif
    resizeterm( w.ws_row, w.ws_col);
@@ -415,15 +432,15 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    /* Create the scrolling list. */
       widgets->instructionlist = newCDKScroll (	cdkscreen,
    		   	   	   	   	   	   	   	   ILDIMENSIONS,
-									   (char*)"<C></5>Instruction list",
-   									   (char**)pinit,
+									   "<C></5>Instruction list",
+   									   pinit,
    									   1,
    									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
       /* Create the scrolling window. */
       widgets->tracewindow = newCDKScroll (	cdkscreen,
    		   	   	   	   	   	   	   	   	   TWDIMENSIONS,
-										   (char*)"<C></5>Trace window", //title
+										   "<C></5>Trace window", //title
 										   (char**)pinit,
 	   									   1,
    										   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -432,7 +449,7 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    /* Create the scrolling list. */
    widgets->freelist = newCDKScroll (	cdkscreen,
 		   	   	   	   	   	   	   	   FLDIMENSIONS,
-									   (char*)"<C></5>free list",
+									   "<C></5>free list",
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -440,7 +457,7 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    /* Create the scrolling window. */
    widgets->regmaptable = newCDKScroll (	cdkscreen,
 		   	   	   	   	   	   	   	   	   RMAPDIMENSIONS,
-										   (char*)"<C></5>Register map table", //title
+										   "<C></5>Register map table", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -448,28 +465,28 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 
    widgets->activelist = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   	   ACTLISTDIMENSIONS,
-										   (char*)"<C></5>active list",
+										   "<C></5>active list",
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->fpQueue = newCDKScroll (	cdkscreen,
 		   	   	   	   	   	   	   	   	   FPQUEUEDIMENSIONS,
-										   (char*)"<C></5>FP queue", //title
+										   "<C></5>FP queue", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->addressQueue = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   	   ADDQUEUEDIMENSIONS,
-										   (char*)"<C></5>address queue", //title
+										   "<C></5>address queue", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->integerQueue = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   	   IQUEUEDIMENSIONS,
-										   (char*)"<C></5>integer queue", //title
+										   "<C></5>integer queue", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -477,35 +494,35 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 
    widgets->fpMPipe = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   FPMPIPEDIMENSIONS,
-									   (char*)"<C></5>M Pipe", //title
+									   "<C></5>M Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->fpAPipe = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   FPAPIPEDIMENSIONS,
-									   (char*)"<C></5>A Pipe", //title
+									   "<C></5>A Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->ALUAPipe = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   ALUAPIPEDIMENSIONS,
-									   (char*)"<C></5>ALU A Pipe", //title
+									   "<C></5>ALU A Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->ALUBPipe  = newCDKScroll (cdkscreen,
 	   	   	   	   	   	   	   	   	   ALUBPIPEDIMENSIONS,
-									   (char*)"<C></5>ALU B Pipe", //title
+									   "<C></5>ALU B Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->LSPipe  = newCDKScroll (cdkscreen,
 	   	   	   	   	   	   	   	   	   LSAPIPEDIMENSIONS,
-									   (char*)"<C></5>LS Pipe", //title
+									   "<C></5>LS Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -515,9 +532,9 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 //COMMIT-ESQUE STUFF
    widgets->ROBList = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   ROBLISTDIMENSIONS,
-									   (char*)"<C></5>ROB list",	//Title
+									   "<C></5>ROB list",	//Title
    									   pinit,
-   									   1,
+   									   2,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);	//[show nums,?,?,?]
 
 
@@ -665,6 +682,7 @@ void UserInterface::UserInterface::blitFreeList(vector<string>* FreeListItems)
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				FreeListItems,			//1 In vector:				FreeListItems
 				freelistItems,			//2	WidgetList to refresh:	_interfaceWidgetItems.freelistItems
+				freelistItemsCount,		//Needed for UI fix up (remove items over the new list length)
 				freelist		);		//3 Widget to blit to:		_interfaceWidgets.freelist
 
 //TODO blit all on clock
@@ -681,6 +699,7 @@ void UserInterface::blitActiveList(		vector<string>* ActiveListItems)
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				ActiveListItems,		//1 In vector:				FreeListItems
 				activelistItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.activelistItems
+				activelistItemsCount,
 				activelist		);		//3 Widget to blit to:		_interfaceWidgets.activelist
 
 //TODO blit all on clock
@@ -690,11 +709,12 @@ void UserInterface::blitActiveList(		vector<string>* ActiveListItems)
 #endif
 }
 
-void UserInterface::blitRegMapTable(vector<string>* RegMapListItems)
+void UserInterface::blitRegMapTable(vector<string>* RegMapListItems)	//working OK Dec 6 2k14.
 {
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				RegMapListItems,		//1 In vector:				RegMapListItems
 				regmaptableItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.regmaptableItems
+				regmaptableItemsCount,
 				regmaptable		);		//3 Widget to blit to:		_interfaceWidgets.regmaptable
 
 //TODO blit all on clock
@@ -704,11 +724,12 @@ void UserInterface::blitRegMapTable(vector<string>* RegMapListItems)
 #endif
 }
 
-void UserInterface::blitFPQueueList(		vector<string>* FPQueueListItems)
+void UserInterface::blitFPQueueList(		vector<string>* FPQueueListItems)	//working OK Dec 6 2k14
 {
 	ReloadItems(					//A helper macro to implement the body of UserInterface::blitROBList()
 				FPQueueListItems,	//1 In vector:				FPQueueListItems
 				fpQueueItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.fpQueueItems
+				fpQueueItemsCount,
 				fpQueue		);		//3 Widget to blit to:		_interfaceWidgets.fpQueue
 
 //TODO blit all on clock
@@ -718,25 +739,66 @@ void UserInterface::blitFPQueueList(		vector<string>* FPQueueListItems)
 #endif
 }
 
-void UserInterface::blitAddressQueueList(	vector<string>* AddressQueueListItems)
+void UserInterface::blitAddressQueueList(	vector<string>* AddressQueueListItems)	//OK Dec 6
 {
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				AddressQueueListItems,	//1 In vector:				AddressQueueListItems
 				addressQueueItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.addressQueueItems
+				addressQueueItemsCount,
 				addressQueue		);	//3 Widget to blit to:		_interfaceWidgets.addressQueue
+
+/*	int 						loop = 0;
+				const char*					charROBListItems[AddressQueueListItems->size()];
+				vector<string>::iterator 	listit;
+				for(listit =AddressQueueListItems->begin(); listit != AddressQueueListItems->end(); listit++)
+				{
+					charROBListItems[loop] = convert(*listit);
+					loop++;
+				}
+				/*library bug. Remove items  if list shrank*/
+				while(_interfaceWidgetItemCount.addressQueueItemsCount > loop)
+					{
+						_interfaceWidgetItemCount.addressQueueItemsCount--;
+						deleteCDKScrollItem(_interfaceWidgets.addressQueue,
+											_interfaceWidgetItemCount.addressQueueItemsCount);
+					}
+					_interfaceWidgetItemCount.addressQueueItemsCount = loop;
+					/*re-set list items to new list*/
+				_interfaceWidgetItems.addressQueueItems = charROBListItems;
+				if(_interfaceWidgetItems.addressQueueItems == NULL)
+					return;
+				setCDKScrollItems (	_interfaceWidgets.addressQueue,
+									(char**)_interfaceWidgetItems.addressQueueItems,
+									loop,
+									true								);
+
+
 
 //TODO blit all on clock
 #ifdef DEBUG
+//	deleteCDKScrollItems(_interfaceWidgets.addressQueue);
+
+/*	while(_interfaceWidgetItemCount.addressQueueItemsCount > loop)
+	{
+		_interfaceWidgetItemCount.addressQueueItemsCount--;
+
+		deleteCDKScrollItem(_interfaceWidgets.addressQueue,
+							_interfaceWidgetItemCount.addressQueueItemsCount);
+	}
+	_interfaceWidgetItemCount.addressQueueItemsCount = loop;
+*/
+
 	drawCDKScroll (_interfaceWidgets.addressQueue,		//Draw this window
 					true						);	//Draw with a box around it
 #endif
 }
 
-void UserInterface::blitIntegerQueueList(	vector<string>* IntegerQueueListItems)
+void UserInterface::blitIntegerQueueList(	vector<string>* IntegerQueueListItems)	//OK
 {
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				IntegerQueueListItems,	//1 In vector:				IntegerQueueListItems
 				integerQueueItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.integerQueueItems
+				integerQueueItemsCount,
 				integerQueue		);	//3 Widget to blit to:		_interfaceWidgets.integerQueue
 
 //TODO blit all on clock
@@ -751,6 +813,7 @@ void UserInterface::blitFPMPipe(			vector<string>* FPMPipeListItems)
 	ReloadItems(					//A helper macro to implement the body of UserInterface::blitROBList()
 				FPMPipeListItems,	//1 In vector:				FreeListItems
 				fpMPipeItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.fpMPipe
+				fpMPipeItemsCount,
 				fpMPipe		);		//3 Widget to blit to:		_interfaceWidgets.fpMPipe
 
 //TODO blit all on clock
@@ -760,11 +823,12 @@ void UserInterface::blitFPMPipe(			vector<string>* FPMPipeListItems)
 #endif
 }
 
-void UserInterface::blitFPApipe(			vector<string>* FPAPipeListItems)
+void UserInterface::blitFPApipe(			vector<string>* FPAPipeListItems)		//OK
 {
 	ReloadItems(					//A helper macro to implement the body of UserInterface::blitROBList()
 				FPAPipeListItems,	//1 In vector:				FreeListItems
 				fpAPipeItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.fpAPipetItems
+				fpAPipeItemsCount,
 				fpAPipe		);		//3 Widget to blit to:		_interfaceWidgets.fpAPipe
 
 //TODO blit all on clock
@@ -774,11 +838,12 @@ void UserInterface::blitFPApipe(			vector<string>* FPAPipeListItems)
 #endif
 }
 
-void UserInterface::blitALUAPipe(			vector<string>* ALUAPipeListItems)
+void UserInterface::blitALUAPipe(			vector<string>* ALUAPipeListItems)	//OK
 {
 	ReloadItems(					//A helper macro to implement the body of UserInterface::blitROBList()
 				ALUAPipeListItems,	//1 In vector:				FreeListItems
 				ALUAPipeItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.ALUAPipeItems
+				ALUAPipeItemsCount,
 				ALUAPipe		);	//3 Widget to blit to:		_interfaceWidgets.ALUAPipe
 
 //TODO blit all on clock
@@ -788,11 +853,12 @@ void UserInterface::blitALUAPipe(			vector<string>* ALUAPipeListItems)
 #endif
 }
 
-void UserInterface::blitALUBPipe(			vector<string>* ALUBPipeListItems)
+void UserInterface::blitALUBPipe(			vector<string>* ALUBPipeListItems)	//OK
 {
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				ALUBPipeListItems,		//1 In vector:				ALUBPipeListItems
 				ALUBPipeItems,			//2	WidgetList to refresh:	_interfaceWidgetItems.ALUBPipe
+				ALUBPipeItemsCount,
 				ALUBPipe		);		//3 Widget to blit to:		_interfaceWidgets.ALUBPipe
 
 //TODO blit all on clock
@@ -802,11 +868,12 @@ void UserInterface::blitALUBPipe(			vector<string>* ALUBPipeListItems)
 #endif
 }
 
-void UserInterface::blitLSPipe(			vector<string>* LSPipeListItems)
+void UserInterface::blitLSPipe(			vector<string>* LSPipeListItems)	//OK
 {
 	ReloadItems(					//A helper macro to implement the body of UserInterface::blitROBList()
 				LSPipeListItems,	//1 In vector:				LSPipeListItems
 				LSPipeItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.LSPipeItems
+				LSPipeItemsCount,
 				LSPipe		);		//3 Widget to blit to:		_interfaceWidgets.LSPipe
 
 //TODO blit all on clock

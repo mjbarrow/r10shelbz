@@ -42,15 +42,65 @@ public:
 
 		for(i = 0; i< renameRegCount; i++){_FreeRegList->push(i);}						//Initialize free reg list
 		for(i = 0; i< ISARegCount; i++){_ISAInstanceRegmap->insert(ISAreginstancepair(i,0));} //Initialize reginstance to 0 for all ISAReg's
+
+		for(i = 0; i<4; i++)
+		{
+			_DTraceLines.push_back(traceinstruction());
+			_QTraceLines.push_back(traceinstruction());
+		}			//Always have 4 trace instructions available
+
+		//house keeping logic init
+		_traceLinesAccepted = MAXDECODEDINSTPERCYCLE;
+		_tracebufhead = 0;
 	}
+
 
 //TODO:	void toggleclk();
 	//TODO swizzle registers
 	//Blit the appropriate widget
 	void risingEdge();
 
-	//RETURNS FALSE IF WE RUN OUT OF ACTIVE LIST ENTRIES. WILL NOT HAVE MAPPED traceline ON FALSE RETURN
-	bool Decode(traceinstruction traceline);	//return success if ok, false if something went wrong
+	void calc()
+	{
+		_traceLinesAccepted = 0;
+
+		//BEHAVIOUR. PUSH Into THE QUEUES IN ORDER. IF
+		//INSTRUCTION CANNOT BE PUSHED, STOP TRYING TO PUSH ANY SUBSEQUENT INSTRUCTION INTO QUEUES.
+
+		//The instruction Decode width is 4 Try to decode
+		while(_traceLinesAccepted < MAXDECODEDINSTPERCYCLE)
+		{
+			if(_QTraceLines[_traceLinesAccepted].intOp != BADOpcode)	//Dont do work on naff tracelines
+				if(!Decode(_QTraceLines[_traceLinesAccepted]))			//Try to decode this trace line
+					break;												//If we cannot, just give up.
+			_traceLinesAccepted++;										//Track how many tracelines we were able
+		}																//To decode
+	}
+
+	//The IO function of this stage. set the D input and read the feedback output.
+	//You can do this as many times as you want you wont change what does on with the calc()
+	int setDTraceLines(vector<traceinstruction>* DTraceLines)
+	{
+		int i = 0;
+
+		//Ugh. Corner case. Always accept Max if you accepted max last time
+		if((MAXDECODEDINSTPERCYCLE - _traceLinesAccepted) == 0)
+			_traceLinesAccepted = 0;
+
+		//Accept the amount of instruction slots available in the instruction buffer
+		while((i < (MAXDECODEDINSTPERCYCLE - _traceLinesAccepted)) && ((unsigned int)i < DTraceLines->size()) )
+		{
+			//Remove blank instruction slots.
+			_DTraceLines[_tracebufhead] = (*DTraceLines)[i];
+			_tracebufhead++;
+			if(_tracebufhead == MAXDECODEDINSTPERCYCLE)
+				_tracebufhead = 0;
+			i++;
+		}
+		_traceLinesAccepted = i;
+
+		return _traceLinesAccepted;	//Provide feedback to the instruction buffer so it doesn't overload us and make us drop instructions
+	}
 
 	//Actual machine registers. you use one of these when doing work (we do not do work)
 	ActiveReg ActiveList[renameRegCount];
@@ -61,6 +111,9 @@ public:
 	virtual ~InstDecodeStage(){}
 
 private:
+	//RETURNS FALSE IF WE RUN OUT OF ACTIVE LIST ENTRIES. WILL NOT HAVE MAPPED traceline ON FALSE RETURN
+	bool Decode(traceinstruction traceline);	//return success if ok, false if something went wrong
+
 	string regmapEntryToString(regmappair entry);
 	//Use this to update the UI
 	UserInterface* 	_ui;
@@ -80,10 +133,15 @@ private:
 	//BastardChild
 	ISAreginstance* _ISAInstanceRegmap;
 
-private:
-	//The thing is clocked so have some "wire representation of a trace that gets set whenever"
-	//traceinstruction D_traceline;
+	//D and Q variable
+	//Clock related stuff D tracelines (these are the input side of the register)
+	vector<traceinstruction> _DTraceLines;
 
+	//The 4 tracelines to work on (these are the output side of the stage's register, which we work on)
+	vector<traceinstruction> _QTraceLines;
+
+	int 			_traceLinesAccepted;
+	int				_tracebufhead;
 
 };
 
