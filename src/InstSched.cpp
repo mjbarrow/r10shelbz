@@ -110,13 +110,6 @@ void InstSchedStage::calc()//promoQueueToPipe()
 	//prepare the _scheduledInstructions (without pending dependencies), which will be fed into the pipe.
 	_arbitrateQueues();
 
-//TODO DEBUG DEBUG DEBUG DELETE ANYTHING YOU PUT IN THE PIPE
-//FROM YOUR  QUEUE
-//TODO DEBUG DEBUG DEBUG DELETE ANYTHING YOU PUT IN THE PIPE
-//FROM YOUR  QUEUE
-//TODO DEBUG DEBUG DEBUG DELETE ANYTHING YOU PUT IN THE PIPE
-//FROM YOUR  QUEUE
-
 //NOW CHUCK _scheduledInstructions at the pipe
 	if(_scheduledInstructions.scheduledFPM != _FPInstructionQueue.end())
 	{

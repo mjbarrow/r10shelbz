@@ -17,15 +17,18 @@ ROB::~ROB() {
 //Blit the appropriate widget
 void ROB::risingEdge()
 {
-	vector<string> stringROB;
-	unsigned int i;
+/*	vector<string> stringROB;
+	unsigned int i;*/
+
+	_myCycleCounter++;			//This is used so the ROB displays the cycle a trace line entered it.
 
 	//Commit old instructions. They will go away forever to memory.
 	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
 	//Add the new instructions into the ROB. They will live until pipes commit them
 	_issuedInstsToROB();
 
-	//Construct the correct type of input for the blit function
+/*			BLIT THE ROB ON THE FALLING EDGE
+ * 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
 	for(i = 0; i < ROBbuffer.size(); i++)
 	{
@@ -35,8 +38,48 @@ void ROB::risingEdge()
 		stringROB.push_back("empty");
 
 	//trigger the blit function so that the screen output is refreshed of the ROB content
+	_ui->blitROBList(&stringROB);*/
+}
+
+//Perform the retirement of all instructions at the port pipes
+//On the clock falling edge
+void ROB::fallingEdge()//_retireEntry(traceinstruction retire)
+{
+	vector<string> stringROB;
+	vector<robEntry>::iterator i;
+	int loop;
+
+	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
+	{
+		if(_retirePorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
+		{
+			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
+			{
+				if ((*i).m_rd.Key == _retirePorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+					(*i).retired = true;							//Retire that instruction in the ROB
+			}														//Now the scheduler will know another register is ready
+		}
+		_retirePorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
+													//If the execution pipes don't do anything next cycle
+	}
+		//return false;
+
+	//Construct the correct type of input for the blit function
+	//An array of strings which it will blit out
+	for(loop = 0; loop < ROBbuffer.size(); loop++)
+	{
+		stringROB.push_back(bufferLineToString(loop));
+	}
+	if(stringROB.size() == 0)
+		stringROB.push_back("empty");
+
+	//trigger the blit function so that the screen output is refreshed of the ROB content
 	_ui->blitROBList(&stringROB);
 }
+
+//======================================================================================================
+//									HELPER METHODS FOR CALC
+//======================================================================================================
 
 //TODO: this needs to be fixed up with clock because it has no
 //Clock cycle value in the newEntry
@@ -53,7 +96,7 @@ void ROB::_issuedInstsToROB()//addEntry(traceinstruction value)
 		if(_issuedInsts[_issuePortHead].intOp != BADOpcode)
 		{
 			//If something exists at this port,
-			newEntry = robEntry(&_issuedInsts[_issuePortHead]);	//Make a new ROB entry
+			newEntry = robEntry(&_issuedInsts[_issuePortHead],_myCycleCounter);	//Make a new ROB entry
 
 			if((ROBbuffer.size() <= head) && (head < ROBSize))	//Ugh, circular buffer house keeping...
 			{
@@ -162,27 +205,6 @@ bool ROB::isFull()
 	return false;
 }
 
-//Perform the retirement of all instructions at the port pipes
-//On the clock falling edge
-void ROB::fallingEdge()//_retireEntry(traceinstruction retire)
-{
-	vector<robEntry>::iterator i;
-	int loop;
 
-	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
-	{
-		if(_retirePorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
-		{
-			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
-			{
-				if ((*i).m_rd.Key == _retirePorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
-					(*i).retired = true;							//Retire that instruction in the ROB
-			}														//Now the scheduler will know another register is ready
-		}
-		_retirePorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
-													//If the execution pipes don't do anything next cycle
-	}
-		//return false;
-}
 
 } /* namespace R10k */

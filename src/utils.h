@@ -26,6 +26,8 @@ using namespace std;
 #define ALUQPORTCOUNT	4
 #define ADDQPORTCOUNT	4
 
+//Instruction fetch ish
+#define INSTDECODEPERCYCLE 4
 
 //ROB ish
 #define COMMITPORTCOUNT	4

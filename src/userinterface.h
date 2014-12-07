@@ -85,72 +85,83 @@ typedef struct _UIWIDGETS
 
 typedef struct _UIWIDGETSITEMS
 {
-	   const char**	ROBListItems;
-	 //SCHEDULE STUFF
-	   const char** freelistItems;
-	   const char** activelistItems;
-	   const char**	regmaptableItems;
-	 //DECODE STUFF
-	   const char**	fpQueueItems;
-	   const char**	addressQueueItems;
-	   const char**	integerQueueItems;
-	 //PIPES
-	   const char**	fpMPipeItems;
-	   const char**	fpAPipeItems;
-	   const char**	ALUAPipeItems;
-	   const char**	ALUBPipeItems;
-	   const char**	LSPipeItems;
+	const char** 	instructionlistItems;
+	const char** 	tracewindowItems;
+	//ROB STUFF
+	const char**	ROBListItems;
+	//SCHEDULE STUFF
+	const char** 	freelistItems;
+	const char** 	activelistItems;
+	const char**	regmaptableItems;
+	//DECODE STUFF
+	const char**	fpQueueItems;
+	const char**	addressQueueItems;
+	const char**	integerQueueItems;
+	//PIPES
+	const char**	fpMPipeItems;
+	const char**	fpAPipeItems;
+	const char**	ALUAPipeItems;
+	const char**	ALUBPipeItems;
+	const char**	LSPipeItems;
 
-	   _UIWIDGETSITEMS()
-	   {
-		   ROBListItems		= NULL;
-		   freelistItems	= NULL;
-		   activelistItems	= NULL;
-		   regmaptableItems	= NULL;
-		   fpQueueItems		= NULL;
-		   addressQueueItems= NULL;
-		   integerQueueItems= NULL;
-		   fpMPipeItems		= NULL;
-		   fpAPipeItems		= NULL;
-		   ALUAPipeItems	= NULL;
-		   ALUBPipeItems	= NULL;
-		   LSPipeItems		= NULL;
-	   }
+	_UIWIDGETSITEMS()
+	{
+		instructionlistItems	= NULL;
+		tracewindowItems 		= NULL;
+		ROBListItems			= NULL;
+		freelistItems			= NULL;
+		activelistItems			= NULL;
+		regmaptableItems		= NULL;
+		fpQueueItems			= NULL;
+		addressQueueItems		= NULL;
+		integerQueueItems		= NULL;
+		fpMPipeItems			= NULL;
+		fpAPipeItems			= NULL;
+		ALUAPipeItems			= NULL;
+		ALUBPipeItems			= NULL;
+		LSPipeItems				= NULL;
+	}
 }uiWidgetsItems, *puiWidgetsItems;
 
 typedef struct _UIWIDGETSIZES
 {
-	   int	ROBListItemsCount;
-	 //SCHEDULE STUFF
-	   int freelistItemsCount;
-	   int activelistItemsCount;
-	   int	regmaptableItemsCount;
-	 //DECODE STUFF
-	   int	fpQueueItemsCount;
-	   int	addressQueueItemsCount;
-	   int	integerQueueItemsCount;
-	 //PIPES
-	   int	fpMPipeItemsCount;
-	   int	fpAPipeItemsCount;
-	   int	ALUAPipeItemsCount;
-	   int	ALUBPipeItemsCount;
-	   int	LSPipeItemsCount;
+	//INSTRUCTION FETCH STUFF
+	int instructionlistItemsCount;
+	int tracewindowItemsCount;
+	//ROB STUFF
+	int	ROBListItemsCount;
+	//SCHEDULE STUFF
+	int freelistItemsCount;
+	int activelistItemsCount;
+	int	regmaptableItemsCount;
+	//DECODE STUFF
+	int	fpQueueItemsCount;
+	int	addressQueueItemsCount;
+	int	integerQueueItemsCount;
+	//PIPES
+	int	fpMPipeItemsCount;
+	int	fpAPipeItemsCount;
+	int	ALUAPipeItemsCount;
+	int	ALUBPipeItemsCount;
+	int	LSPipeItemsCount;
 
-	   _UIWIDGETSIZES()
-	   {
-		   ROBListItemsCount		= 0;
-		   freelistItemsCount		= 0;
-		   activelistItemsCount		= 0;
-		   regmaptableItemsCount	= 0;
-		   fpQueueItemsCount		= 0;
-		   addressQueueItemsCount	= 0;
-		   integerQueueItemsCount	= 0;
-		   fpMPipeItemsCount		= 0;
-		   fpAPipeItemsCount		= 0;
-		   ALUAPipeItemsCount		= 0;
-		   ALUBPipeItemsCount		= 0;
-		   LSPipeItemsCount			= 0;
-	   }
+	_UIWIDGETSIZES()
+	{
+		instructionlistItemsCount=0;
+		tracewindowItemsCount	= 0;
+		ROBListItemsCount		= 0;
+		freelistItemsCount		= 0;
+		activelistItemsCount	= 0;
+		regmaptableItemsCount	= 0;
+		fpQueueItemsCount		= 0;
+		addressQueueItemsCount	= 0;
+		integerQueueItemsCount	= 0;
+		fpMPipeItemsCount		= 0;
+		fpAPipeItemsCount		= 0;
+		ALUAPipeItemsCount		= 0;
+		ALUBPipeItemsCount		= 0;
+		LSPipeItemsCount		= 0;
+	}
 }uiWidgetsItemCount, *puiWidgetsItemCount;
 
 //===============================================================================================================================================
@@ -203,6 +214,8 @@ public:
 	string getstderr_term(){return _stderr_term;}
 
 	//Functions to refresh the Output widget of each displayed r10k device
+	void blitInstructionList(	vector<string>* InstructionListItems);
+	void blitTraceWindow(		vector<string>* TraceWindowListItems);
 	void blitROBList(			vector<string>* ROBListItems);
 	void blitFreeList(			vector<string>* FreeListItems);
 	void blitActiveList(		vector<string>* ActiveListItems);

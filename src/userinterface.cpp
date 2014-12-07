@@ -647,6 +647,36 @@ void UserInterface::drawALL()
 		drawCDKScroll (_interfaceWidgets.ROBList, 1);
 }
 
+void UserInterface::blitInstructionList(vector<string>* InstructionListItems)
+{
+	ReloadItems(							//A helper macro to implement the body of UserInterface::blitROBList()
+				InstructionListItems,		//1 In vector:				FreeListItems
+				instructionlistItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.freelistItems
+				instructionlistItemsCount,	//Needed for UI fix up (remove items over the new list length)
+				instructionlist		);		//3 Widget to blit to:		_interfaceWidgets.freelist
+
+//TODO blit all on clock
+#ifdef DEBUG
+	drawCDKScroll (_interfaceWidgets.instructionlist,		//Draw this window
+					true								);	//Draw with a box around it
+#endif
+}
+
+void UserInterface::blitTraceWindow(vector<string>* TraceWindowListItems)
+{
+	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
+			TraceWindowListItems,		//1 In vector:				FreeListItems
+				tracewindowItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.freelistItems
+				tracewindowItemsCount,	//Needed for UI fix up (remove items over the new list length)
+				tracewindow		);		//3 Widget to blit to:		_interfaceWidgets.freelist
+
+//TODO blit all on clock
+#ifdef DEBUG
+	drawCDKScroll (_interfaceWidgets.tracewindow,		//Draw this window
+					true						);	//Draw with a box around it
+#endif
+}
+
 void UserInterface::blitROBList(vector<string>* ROBListItems)
 {
 	int 						loop = 0;
@@ -691,8 +721,6 @@ void UserInterface::UserInterface::blitFreeList(vector<string>* FreeListItems)
 					true						);	//Draw with a box around it
 #endif
 }
-
-//TODO ALL BELOW ARE BAD
 
 void UserInterface::blitActiveList(		vector<string>* ActiveListItems)
 {
@@ -754,7 +782,7 @@ void UserInterface::blitAddressQueueList(	vector<string>* AddressQueueListItems)
 				{
 					charROBListItems[loop] = convert(*listit);
 					loop++;
-				}
+				}*/
 				/*library bug. Remove items  if list shrank*/
 				while(_interfaceWidgetItemCount.addressQueueItemsCount > loop)
 					{

@@ -6,6 +6,7 @@
 CPP_SRCS += \
 ../src/CSE240AProj.cpp \
 ../src/InstDecode.cpp \
+../src/InstFetch.cpp \
 ../src/InstPipe.cpp \
 ../src/InstSched.cpp \
 ../src/ROB.cpp \
@@ -16,6 +17,7 @@ CPP_SRCS += \
 OBJS += \
 ./src/CSE240AProj.o \
 ./src/InstDecode.o \
+./src/InstFetch.o \
 ./src/InstPipe.o \
 ./src/InstSched.o \
 ./src/ROB.o \
@@ -26,6 +28,7 @@ OBJS += \
 CPP_DEPS += \
 ./src/CSE240AProj.d \
 ./src/InstDecode.d \
+./src/InstFetch.d \
 ./src/InstPipe.d \
 ./src/InstSched.d \
 ./src/ROB.d \

@@ -60,11 +60,11 @@ public:
 	void risingEdge();
 	void calc()//retirePipes()				//This will just attempt to retire the last element in the vector, which should
 	{										//represent a complete instruction.
-		_ROB->retireEntry(FPMRETIREPORT,_FPMpipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(FPARETIREPORT,_FPApipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(LSARETIREPORT,_LS1pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(FPMRETIREPORT,_FPMpipe[2]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(FPARETIREPORT,_FPApipe[2]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe[0]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe[0]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(LSARETIREPORT,_LS1pipe[1]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
 	}
 
 

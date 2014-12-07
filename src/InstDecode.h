@@ -102,6 +102,8 @@ public:
 		return _traceLinesAccepted;	//Provide feedback to the instruction buffer so it doesn't overload us and make us drop instructions
 	}
 
+	int getLinesAccepted(){return _traceLinesAccepted;}	//Feedback that the Instruction fetch uses so as not to over stuff this stage.
+
 	//Actual machine registers. you use one of these when doing work (we do not do work)
 	ActiveReg ActiveList[renameRegCount];
 
@@ -140,7 +142,7 @@ private:
 	//The 4 tracelines to work on (these are the output side of the stage's register, which we work on)
 	vector<traceinstruction> _QTraceLines;
 
-	int 			_traceLinesAccepted;
+	int 			_traceLinesAccepted;	//Number of tracelines accepted last cycle
 	int				_tracebufhead;
 
 };

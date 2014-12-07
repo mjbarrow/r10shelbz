@@ -35,7 +35,6 @@ public:
 	int instantiationcycle;		//this is for debug visibility mainly
 
 	robEntry()														{instantiationcycle = 0; retired = false;}
-	robEntry(traceinstruction* t)			:traceinstruction(*t)	{instantiationcycle = 0; retired = false; return;}
 	robEntry(traceinstruction* t, int c)	:traceinstruction(*t)	{instantiationcycle = c; retired = false; return;}
 
 	bool operator==(const robEntry& rhs) const
@@ -67,6 +66,7 @@ public:
 	{
 		head = tail 	= 0;
 		_issuePortHead 	= 0;
+		_myCycleCounter = 0;
 		_ui 			= ui;
 		_FreeRegList 	= FreeRegList;
 		_regMapTable 	= rmt;
@@ -105,6 +105,7 @@ private:
 	unsigned int 		head;
 	unsigned int 		tail;
 	int					_issuePortHead;
+	int					_myCycleCounter;
 	freeRegList* 		_FreeRegList;	//The ROB needs this when committing. It will free registers from here
 	regmaptable* 		_regMapTable;	//Also needed when committing, to remove
 	UserInterface*		_ui;			//Need this to blit out to the user interface
