@@ -79,15 +79,23 @@ int main() {
 	//IF CK
 	//ID CK
 	debugme.risingEdge();							//Clock in data from SetDtraces and refresh output from last cycle (nothing
-	r10kROB.risingEdge();
+	//EX CK
+	r10kExecutionPipes.risingEdge();
+	//ROB CK (COMMIT ?)
+	r10kROB.risingEdge();//TODO only allow the pipes calc to have effect at this point
+
+
 	r10kScheduler.risingEdge();
-	r10kScheduler.printInstructionQueues();
+	//r10kScheduler.printInstructionQueues();
 	//END ALL CK
 //ID CALC
 	debugme.calc();								//Do calculation on data just clocked in
 //SCHED CALC
 	r10kScheduler.calc();
-	r10kScheduler.printInstructionQueues();
+	//r10kScheduler.printInstructionQueues();
+//EX CALC
+	r10kExecutionPipes.calc();
+
 //IF CALC
 	instructionstream = vector<traceinstruction>();	//CLEAN UP THE INSTRUCTION STREAM
 	while (tracelinenumber < 8)		//Fill instruction stream (kinda)
@@ -106,9 +114,14 @@ int main() {
 	//IF CK
 	//ID CK
 	debugme.risingEdge();					//Clock in new data (nothing) and display output from last stage
-	r10kROB.risingEdge();
+	//ROB (COMMIT?) CK
+	r10kROB.risingEdge();//TODO only allow the pipes calc to have effect at this point
+	//SCHED CK
 	r10kScheduler.risingEdge();
-	r10kScheduler.printInstructionQueues();
+	//r10kScheduler.printInstructionQueues();
+	//EX CK
+	r10kExecutionPipes.risingEdge();
+
 	//END ALL CK
 //IF CALC
 	//TBD
@@ -116,15 +129,22 @@ int main() {
 	debugme.calc();
 //SCHED CALC
 	r10kScheduler.calc();
-	r10kScheduler.printInstructionQueues();
+	//r10kScheduler.printInstructionQueues();
+//EX CALC
+	r10kExecutionPipes.calc();
+
 //END ALL CALC
 	//IF CK
 	//ID CK
 	debugme.risingEdge();					//Clock in new data (nothing) and display output from last stage
-	r10kROB.risingEdge();
+	//ROB (COMMIT?) CK
+	r10kROB.risingEdge();//TODO only allow the pipes calc to have effect at this point
 	//SCHED CK
 	r10kScheduler.risingEdge();
-	r10kScheduler.printInstructionQueues();
+	//r10kScheduler.printInstructionQueues();
+	//EX CK
+	r10kExecutionPipes.risingEdge();
+
 	//END ALL CK
 //Get next lot of stuff in from the input file
 
@@ -142,7 +162,7 @@ int main() {
 	r10kROB.printRob();
 //DEBUG ONLY THIS SHOULD BE CALLED EVERY TIME THAT THE ROB COMBINATIONAL LOGIC FIRES
 	//test the screen blitting of the UI
-	r10kROB.risingEdge();
+	r10kROB.risingEdge();//TODO only allow the pipes calc to have effect at this point
 //END DEBUG ONLY
 
 //DEBUG, CHECK THE PROMOTION OF THE SCHEDULER WORKED
@@ -183,7 +203,7 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
 	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 3----------------------------" << endl;
@@ -192,7 +212,7 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
 	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 4----------------------------" << endl;
@@ -201,7 +221,7 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
 	r10kExecutionPipes.risingEdge();
 	cerr << "ROB after pipe stuffing" << endl;
@@ -217,7 +237,7 @@ int main() {
 
 	r10kScheduler.calc();
 	cerr << "Scheduler: promoting instruction queues" << endl;
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	cerr << "Pipes after promotion" << endl;
 	r10kScheduler.printInstructionQueues();
 //DEBUG, CHECK THE INSTRUCTION QUEUE PRINT
@@ -238,7 +258,7 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
 	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 3----------------------------" << endl;
@@ -247,7 +267,7 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
 	r10kExecutionPipes.risingEdge();
 	cerr << "----------------------------CK 4----------------------------" << endl;
@@ -256,7 +276,7 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
 	r10kExecutionPipes.print();
 	r10kExecutionPipes.risingEdge();
 	cerr << "ROB after pipe stuffing" << endl;
@@ -279,7 +299,8 @@ int main() {
 
 	r10kScheduler.calc();
 		cerr << "Scheduler: promoting instruction queues" << endl;
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
+	r10kExecutionPipes.risingEdge();
 	cerr << "Pipes after promotion" << endl;
 	r10kScheduler.printInstructionQueues();
 //DEBUG, CHECK THE INSTRUCTION QUEUE PRINT
@@ -297,7 +318,8 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
+	r10kExecutionPipes.risingEdge();
 	r10kExecutionPipes.print();
 	cerr << "----------------------------CK 3----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
@@ -305,7 +327,8 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
+	r10kExecutionPipes.risingEdge();
 	r10kExecutionPipes.print();
 	cerr << "----------------------------CK 4----------------------------" << endl;
 	r10kExecutionPipes.FPMinPort(traceinstruction());
@@ -313,7 +336,8 @@ int main() {
 	r10kExecutionPipes.ALUAinPort(traceinstruction());
 	r10kExecutionPipes.ALUBinPort(traceinstruction());
 	r10kExecutionPipes.LSAinPort(traceinstruction());
-	r10kExecutionPipes.RetirePipes();					//RETIRES TO ROB
+	r10kExecutionPipes.calc();					//RETIRES TO ROB
+	r10kExecutionPipes.risingEdge();
 	r10kExecutionPipes.print();
 	cerr << "ROB after pipe stuffing" << endl;
 	r10kROB.printRob();

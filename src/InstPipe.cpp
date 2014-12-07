@@ -10,13 +10,6 @@
 namespace R10k
 {
 
-/*
- * 	vector<traceinstruction> _FPMpipe;
-	vector<traceinstruction> _FPApipe;
-	vector<traceinstruction> _ALU1pipe;
-	vector<traceinstruction> _ALU2pipe;
-	vector<traceinstruction> _LS1pipe;
- */
 
 void InstPipeStage::risingEdge()
 {
@@ -26,7 +19,22 @@ void InstPipeStage::risingEdge()
 	vector<string> stringALU2pipe;
 	vector<string> stringLS1pipe;
 
-//TODO: Do register swizzle. This does not actually do clock logic!!!!!!
+	//Do register swizzle. Changes of the ports can't affect the pipes with this approach.
+	_FPMpipe.insert(_FPMpipe.begin(),_DFPM);	//Replace stage 1 with the input port value
+	_FPMpipe.pop_back();						//Remove oldest value. This makes rendering very easy to do
+	_DFPM = traceinstruction();					//Reset to a default value in case the port is not touched next cycle.
+	_FPApipe.insert(_FPApipe.begin(),_DFPA);
+	_FPApipe.pop_back();	//As above
+	_DFPA = traceinstruction();
+	_ALU1pipe.insert(_ALU1pipe.begin(),_DALU1);
+	_ALU1pipe.pop_back();	//as above
+	_DALU1 = traceinstruction();
+	_ALU2pipe.insert(_ALU2pipe.begin(),_DALU2);
+	_ALU2pipe.pop_back();	//as above
+	_DALU2 = traceinstruction();
+	_LS1pipe.insert(_LS1pipe.begin(),_DLS1);
+	_DLS1 = traceinstruction();
+	_LS1pipe.pop_back();	//as above
 
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
@@ -35,7 +43,6 @@ void InstPipeStage::risingEdge()
 	ALU1PipeToString(&stringALU1pipe);
 	ALU2PipeToString(&stringALU2pipe);
 	LS1PipeToString(&stringLS1pipe);
-//	LS1PipeToString(&stringLSpipe);
 
 	//trigger the blit function so that the screen output is refreshed of the queues content
 	//Blit all queues

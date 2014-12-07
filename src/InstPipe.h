@@ -58,14 +58,25 @@ public:
 
 	//Project spec function
 	void risingEdge();
+	void calc()//retirePipes()				//This will just attempt to retire the last element in the vector, which should
+	{										//represent a complete instruction.
+		_ROB->retireEntry(_FPMpipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(_FPApipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(_ALU1pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(_ALU2pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
+		_ROB->retireEntry(_LS1pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
+	}
 
-	void FPMinPort(traceinstruction FPM)	{_FPMpipe.insert(_FPMpipe.begin(),FPM);	_FPMpipe.pop_back();}
-	void FPAinPort(traceinstruction FPA)	{_FPApipe.insert(_FPApipe.begin(),FPA);	_FPApipe.pop_back();}	//As above
-	void ALUAinPort(traceinstruction ALUA)	{_ALU1pipe.insert(_ALU1pipe.begin(),ALUA); _ALU1pipe.pop_back();}//as above
-	void ALUBinPort(traceinstruction ALUB)	{_ALU2pipe.insert(_ALU2pipe.begin(),ALUB); _ALU2pipe.pop_back();}//as above
-	void LSAinPort(traceinstruction LSA)	{_LS1pipe.insert(_LS1pipe.begin(),LSA);	_LS1pipe.pop_back();}	//as above
+
+	void FPMinPort(traceinstruction FPM)	{_DFPM 	= FPM;	}	//Set the port equal to what the Decode stage has passed in during "calc()"
+	void FPAinPort(traceinstruction FPA)	{_DFPA 	= FPA;	}	//As above
+	void ALUAinPort(traceinstruction ALUA)	{_DALU1 = ALUA;	}	//as above
+	void ALUBinPort(traceinstruction ALUB)	{_DALU2 = ALUB;	}	//as above
+	void LSAinPort(traceinstruction LSA)	{_DLS1 	= LSA;	}	//as above
 
 //TODO: DEBUG AND Make sure these feedback paths work
+	//These ForwardAV functions are acceptable as being accessible during Calc,
+	//because they reflect the state of the pipeline throughout a cycle
 	bool FPMforwardAvailable(int m_regdependency)
 	{
 		if((_FPMpipe.at(1).m_rd.machineReg == m_regdependency) || (_FPMpipe.at(2).m_rd.machineReg == m_regdependency))
@@ -80,15 +91,7 @@ public:
 		return false;
 	}
 
-	//This will just attempt to retire the last element in the vector, which should represent a complete instruction.
-	void RetirePipes()
-	{
-		_ROB->retireEntry(_FPMpipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(_FPApipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(_ALU1pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(_ALU2pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(_LS1pipe.back());	//Do not care if it cannot retire, the pipe may contain a bubble
-	}
+
 
 	void print()
 	{
@@ -141,6 +144,15 @@ private:
 	UserInterface* _ui;
 	ROB* _ROB;
 
+	//D ports that can be hammered by the logic of the scheduler
+	traceinstruction _DFPM;
+	traceinstruction _DFPA;
+	traceinstruction _DALU1;
+	traceinstruction _DALU2;
+	traceinstruction _DLS1;
+
+
+	//Actual pipes, on clock the first entry of each gets
 	vector<traceinstruction> _FPMpipe;
 	vector<traceinstruction> _FPApipe;
 	vector<traceinstruction> _ALU1pipe;
