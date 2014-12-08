@@ -6,202 +6,14 @@ using namespace std;
 //						XTERM CONFIG AND INITIALIZATION ROUTINES
 //========================================================================================
 
-#define LISTWIDTH 20
-#define MAXHEIGHT 50
-#define THIRDHEIGHT 17
-#define HSPACE 1
-
-//Instruction List dimensions
-#define ILLEFT 		0/*LEFT*/
-#define ILTOP 		0/*TOP*/
-#define ILSCROLLPOS	RIGHT
-#define ILHEIGHT	THIRDHEIGHT
-#define ILWIDTH		LISTWIDTH
-
-#define ILDIMENSIONS	ILLEFT,		\
-						ILTOP,		\
-						ILSCROLLPOS,\
-						ILHEIGHT,	\
-						ILWIDTH
-
-//Trace window dimensions
-#define TWLEFT 		0/*LEFT*/
-#define TWTOP 		ILHEIGHT
-#define TWSCROLLPOS	RIGHT
-#define TWHEIGHT	(MAXHEIGHT - TWTOP)
-#define TWWIDTH		LISTWIDTH
-
-#define TWDIMENSIONS	TWLEFT,		\
-						TWTOP,		\
-						TWSCROLLPOS,\
-						TWHEIGHT,	\
-						TWWIDTH
-
-//Free list dimensions
-#define FLLEFT 		(ILLEFT + ILWIDTH + 1)
-#define FLTOP 		0/*TOP*/
-#define FLSCROLLPOS	RIGHT
-#define FLHEIGHT	MAXHEIGHT
-#define FLWIDTH		LISTWIDTH
-
-#define FLDIMENSIONS	FLLEFT,		\
-						FLTOP,		\
-						FLSCROLLPOS,\
-						FLHEIGHT,	\
-						FLWIDTH
-
-//Register map dimensions
-#define RMAPLEFT		(FLLEFT + FLWIDTH + 1)
-#define RMAPTOP			0/*TOP*/
-#define RMAPSCROLLPOS	RIGHT
-#define RMAPHEIGHT	   	FLHEIGHT
-#define RMAPWIDTH	   	((2 * FLWIDTH)+(FLWIDTH/2))
-
-#define RMAPDIMENSIONS  RMAPLEFT,		\
-						RMAPTOP,		\
-						RMAPSCROLLPOS,	\
-						RMAPHEIGHT,	   	\
-						RMAPWIDTH
-
-//Active list dimensions
-#define ACTLISLEFT	   (RMAPLEFT + RMAPWIDTH + 1)
-#define ACTLISTTOP		0/*TOP*/
-#define ACTLISTSCROLLPOS RIGHT
-#define ACTLISTHEIGHT	FLHEIGHT
-#define ACTLISTWIDTH	FLWIDTH
-
-#define ACTLISTDIMENSIONS 	ACTLISLEFT,			\
-							ACTLISTTOP,			\
-							ACTLISTSCROLLPOS,	\
-							ACTLISTHEIGHT,		\
-							ACTLISTWIDTH
-
-
-//FP queue dimensions
-#define FPQUEUELEFT	   	   (ACTLISLEFT + ACTLISTWIDTH + 1)
-#define FPQUEUETOP 			0/*TOP*/
-#define FPQUEUESCROLLPOS	RIGHT
-#define	FPQUEUEHEIGHT		THIRDHEIGHT
-#define FPQUEUEWIDTH		FLWIDTH
-
-#define FPQUEUEDIMENSIONS 	FPQUEUELEFT,		\
-							FPQUEUETOP,			\
-							FPQUEUESCROLLPOS,	\
-							FPQUEUEHEIGHT,		\
-							FPQUEUEWIDTH
-
-//Address queue dimensions
-#define ADDQUEUELEFT	   (FPQUEUELEFT + FPQUEUEWIDTH + 1)
-#define ADDQUEUETOP			0/*TOP*/
-#define ADDQUEUESCROLLPOS	RIGHT
-#define ADDQUEUEHEIGHT		FPQUEUEHEIGHT
-#define ADDQUEUEWIDTH		FLWIDTH
-
-#define ADDQUEUEDIMENSIONS 	ADDQUEUELEFT,		\
-							ADDQUEUETOP,		\
-							ADDQUEUESCROLLPOS,	\
-							ADDQUEUEHEIGHT,		\
-							ADDQUEUEWIDTH
-
-
-//integer queue dimensions
-#define IQUEUELEFT	   	   (ADDQUEUELEFT + ADDQUEUEWIDTH + 1)
-#define IQUEUETOP			0/*TOP*/
-#define IQUEUESCROLLPOS		RIGHT
-#define IQUEUEHEIGHT		FPQUEUEHEIGHT
-#define IQUEUEWIDTH			FLWIDTH
-
-#define IQUEUEDIMENSIONS	IQUEUELEFT,			\
-							IQUEUETOP,			\
-							IQUEUESCROLLPOS,	\
-							IQUEUEHEIGHT,		\
-							IQUEUEWIDTH
-
-//M pipe dimensions
-#define FPMPIPELEFT			(ACTLISLEFT + ACTLISTWIDTH + 1)
-#define	FPMPIPETOP			(FPQUEUETOP + FPQUEUEHEIGHT)
-#define FPMPIPESCROLLPOS	RIGHT
-#define FPMPIPEHEIGHT		6
-#define FPMPIPEWIDTH		(3*FLWIDTH)
-
-#define FPMPIPEDIMENSIONS	FPMPIPELEFT,		\
-							FPMPIPETOP,			\
-							FPMPIPESCROLLPOS,	\
-							FPMPIPEHEIGHT,		\
-							FPMPIPEWIDTH
-
-//A pipe dimensions
-#define FPAPIPELEFT  		FPMPIPELEFT
-#define FPAPIPETOP			(FPMPIPETOP + FPMPIPEHEIGHT)
-#define FPAPIPESCROLLPOS	RIGHT
-#define FPAPIPEHEIGHT		FPMPIPEHEIGHT
-#define FPAPIPEWIDTH		FPMPIPEWIDTH
-
-#define FPAPIPEDIMENSIONS	FPAPIPELEFT,		\
-							FPAPIPETOP,			\
-							FPAPIPESCROLLPOS,	\
-							FPAPIPEHEIGHT,		\
-							FPAPIPEWIDTH
-
-//ALU A pipe dimensions
-#define ALUAPIPELEFT		FPMPIPELEFT
-#define ALUAPIPETOP			(FPAPIPETOP + FPAPIPEHEIGHT)
-#define ALUAPIPESCROLLPOS	RIGHT
-#define ALUAPIPEHEIGHT		FPAPIPEHEIGHT
-#define ALUAPIPEWIDTH		FLWIDTH
-
-#define ALUAPIPEDIMENSIONS	ALUAPIPELEFT,		\
-							ALUAPIPETOP,		\
-							ALUAPIPESCROLLPOS,	\
-							ALUAPIPEHEIGHT,		\
-							ALUAPIPEWIDTH
-
-//ALU B pipe dimensions
-#define ALUBPIPELEFT		FPMPIPELEFT
-#define ALUBPIPETOP			(ALUAPIPETOP + ALUAPIPEHEIGHT)
-#define ALUBPIPESCROLLPOS	RIGHT
-#define ALUBPIPEHEIGHT		FPAPIPEHEIGHT
-#define ALUBPIPEWIDTH		FLWIDTH
-
-#define ALUBPIPEDIMENSIONS	ALUBPIPELEFT,		\
-							ALUBPIPETOP,		\
-							ALUBPIPESCROLLPOS,	\
-							ALUBPIPEHEIGHT,		\
-							ALUBPIPEWIDTH
-
-//LS Pipe dimensions
-#define LSAPIPELEFT			FPMPIPELEFT
-#define LSAPIPETOP			(ALUBPIPETOP + ALUBPIPEHEIGHT)
-#define LSAPIPESCROLLPOS	RIGHT
-#define LSAPIPEHEIGHT		FPAPIPEHEIGHT
-#define LSAPIPEWIDTH		(FLWIDTH * 2)
-
-#define LSAPIPEDIMENSIONS	LSAPIPELEFT,		\
-							LSAPIPETOP,			\
-							LSAPIPESCROLLPOS,	\
-							LSAPIPEHEIGHT,		\
-							LSAPIPEWIDTH
-
-//ROB list dimensions
-#define	ROBPIPELEFT			(IQUEUELEFT + IQUEUEWIDTH + 1)
-#define ROBPIPETOP 			0/*TOP*/
-#define ROBPIPESCROLLPOS 	RIGHT
-#define ROBPIPEHEIGHT 		(FPAPIPETOP + FPAPIPEHEIGHT)
-#define ROBPIPEWIDTH 		(FLWIDTH * 6)
-
-#define ROBLISTDIMENSIONS	ROBPIPELEFT,		\
-							ROBPIPETOP,			\
-							ROBPIPESCROLLPOS,	\
-							ROBPIPEHEIGHT,		\
-							ROBPIPEWIDTH
 
 //=========================================================================================
 //								HELPER FUNCTIONS
 //=========================================================================================
 #define		LoadEmptyItem(widget)																	\
-									{	const char* e[1] = {(const char*)"empty"};								\
+									{	const char* e[1] = {(const char*)"empty"};					\
 									setCDKScrollItems (	_interfaceWidgets.widget,					\
-														(char**)e,											\
+														(char**)e,									\
 														1,											\
 														true								);	}
 //1 = ROBListItems
@@ -216,21 +28,20 @@ using namespace std;
 				charROBListItems[loop] = convert(*listit);								\
 				loop++;																	\
 			}																			\
-			/*library bug. Remove items  if list shrank*/\
-			while(_interfaceWidgetItemCount.widgetItemsCount > loop)\
-				{\
-					_interfaceWidgetItemCount.widgetItemsCount--;\
-					deleteCDKScrollItem(_interfaceWidgets.widget,\
-										_interfaceWidgetItemCount.widgetItemsCount);\
-				}\
-				_interfaceWidgetItemCount.widgetItemsCount = loop;\
-				/*re-set list items to new list*/\
+			/*library bug. Remove items  if list shrank*/								\
+			while(_interfaceWidgetItemCount.widgetItemsCount > loop)					\
+				{																		\
+					_interfaceWidgetItemCount.widgetItemsCount--;						\
+					deleteCDKScrollItem(_interfaceWidgets.widget,						\
+										_interfaceWidgetItemCount.widgetItemsCount);	\
+				}																		\
+				_interfaceWidgetItemCount.widgetItemsCount = loop;						\
+				/*re-set list items to new list*/										\
 			_interfaceWidgetItems.widgetItems = charROBListItems;						\
 			if(_interfaceWidgetItems.widgetItems == NULL)								\
 				LoadEmptyItem(widget);													\
 			setCDKScrollItems (	_interfaceWidgets.widget,								\
 								(char**)_interfaceWidgetItems.widgetItems,				\
-/*								newContent->size(),	*/									\
 								loop,													\
 								true								);
 
@@ -350,19 +161,24 @@ void destroyXterm(	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 					int* pt_stdout,
 					int* pt_stderr)
 {
-	   destroyCDKScroll (widgets->ROBList);
-	   destroyCDKScroll (widgets->freelist);
-	   destroyCDKScroll (widgets->activelist);
-	   destroyCDKSwindow(widgets->regmaptable);
-	   destroyCDKSwindow(widgets->fpQueue);
-	   destroyCDKSwindow(widgets->addressQueue);
-	   destroyCDKSwindow(widgets->integerQueue);
+	//Destroy fetch
+	destroyCDKScroll(widgets->tracewindow);
+	destroyCDKScroll(widgets->instructionlist);
+	destroyCDKScroll (widgets->ROBList);
+	destroyCDKScroll (widgets->freelist);
+	/*destroyCDKScroll (widgets->activelist);	RETIRED WIDGET*/
+	destroyCDKScroll(widgets->regmaptable);
+	destroyCDKScroll(widgets->fpQueue);
+	destroyCDKScroll(widgets->addressQueue);
+	destroyCDKScroll(widgets->integerQueue);
 	 //DESTROY PIPES
-	   destroyCDKSwindow(widgets->fpMPipe);
-	   destroyCDKSwindow(widgets->fpAPipe);
-	   destroyCDKSwindow(widgets->ALUAPipe);
-	   destroyCDKSwindow(widgets->ALUBPipe);
-	   destroyCDKSwindow(widgets->LSPipe);
+	destroyCDKScroll(widgets->fpMPipe);
+	destroyCDKScroll(widgets->fpAPipe);
+	destroyCDKScroll(widgets->ALUAPipe);
+	destroyCDKScroll(widgets->ALUBPipe);
+	destroyCDKScroll(widgets->LSPipe);
+	//Destroy tracelogwidow
+	destroyCDKScroll(widgets->tracelogwindow);
 
 	  destroyCDKScreen (cdkscreen);
 	  delwin (cursesWin);
@@ -394,12 +210,10 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 	 //LIBRARY STUFF
 	struct winsize w;
 	int wintermNo;
-//	  int selection, count;//junk
 	//Widgit init stuff
-	char* on	= "Booting...";
-	char* in 	= "Ready:";
+	char* on	= (char*)"Booting...";
+	char* in 	= (char*)"Ready:";
 	char* pinit[2] 	= {on,in};
-//	int initcount 	= 1;
 
 
    /* Set up CDK. */
@@ -432,7 +246,7 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    /* Create the scrolling list. */
       widgets->instructionlist = newCDKScroll (	cdkscreen,
    		   	   	   	   	   	   	   	   ILDIMENSIONS,
-									   "<C></5>Instruction list",
+									   (char*)"<C></5>Instruction list",
    									   pinit,
    									   1,
    									   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -440,7 +254,7 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
       /* Create the scrolling window. */
       widgets->tracewindow = newCDKScroll (	cdkscreen,
    		   	   	   	   	   	   	   	   	   TWDIMENSIONS,
-										   "<C></5>Trace window", //title
+										   (char*)"<C></5>Trace window", //title
 										   (char**)pinit,
 	   									   1,
    										   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -449,7 +263,7 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    /* Create the scrolling list. */
    widgets->freelist = newCDKScroll (	cdkscreen,
 		   	   	   	   	   	   	   	   FLDIMENSIONS,
-									   "<C></5>free list",
+									   (char*)"<C></5>free list",
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -457,36 +271,36 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
    /* Create the scrolling window. */
    widgets->regmaptable = newCDKScroll (	cdkscreen,
 		   	   	   	   	   	   	   	   	   RMAPDIMENSIONS,
-										   "<C></5>Register map table", //title
+										   (char*)"<C></5>Register map table", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
 
 
-   widgets->activelist = newCDKScroll (cdkscreen,
+   /*widgets->activelist = newCDKScroll (cdkscreen,				RETIRED WIDGET
 		   	   	   	   	   	   	   	   	   ACTLISTDIMENSIONS,
 										   "<C></5>active list",
 	   									   pinit,
 	   									   1,
-										   NUMBERS, A_REVERSE, TRUE, FALSE);
+										   NUMBERS, A_REVERSE, TRUE, FALSE);*/
 
    widgets->fpQueue = newCDKScroll (	cdkscreen,
 		   	   	   	   	   	   	   	   	   FPQUEUEDIMENSIONS,
-										   "<C></5>FP queue", //title
+										   (char*)"<C></5>FP queue", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->addressQueue = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   	   ADDQUEUEDIMENSIONS,
-										   "<C></5>address queue", //title
+										   (char*)"<C></5>address queue", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->integerQueue = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   	   IQUEUEDIMENSIONS,
-										   "<C></5>integer queue", //title
+										   (char*)"<C></5>integer queue", //title
 	   									   pinit,
 	   									   1,
 										   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -494,35 +308,35 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 
    widgets->fpMPipe = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   FPMPIPEDIMENSIONS,
-									   "<C></5>M Pipe", //title
+									   (char*)"<C></5>M Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->fpAPipe = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   FPAPIPEDIMENSIONS,
-									   "<C></5>A Pipe", //title
+									   (char*)"<C></5>A Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->ALUAPipe = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   ALUAPIPEDIMENSIONS,
-									   "<C></5>ALU A Pipe", //title
+									   (char*)"<C></5>ALU A Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->ALUBPipe  = newCDKScroll (cdkscreen,
 	   	   	   	   	   	   	   	   	   ALUBPIPEDIMENSIONS,
-									   "<C></5>ALU B Pipe", //title
+									   (char*)"<C></5>ALU B Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
 
    widgets->LSPipe  = newCDKScroll (cdkscreen,
 	   	   	   	   	   	   	   	   	   LSAPIPEDIMENSIONS,
-									   "<C></5>LS Pipe", //title
+									   (char*)"<C></5>LS Pipe", //title
    									   pinit,
    									   1,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);
@@ -532,15 +346,23 @@ bool initui (	CDKSCREEN* cdkscreen,		//Must persist the lifetime of
 //COMMIT-ESQUE STUFF
    widgets->ROBList = newCDKScroll (cdkscreen,
 		   	   	   	   	   	   	   	   ROBLISTDIMENSIONS,
-									   "<C></5>ROB list",	//Title
+									   (char*)"<C></5>ROB list",	//Title
    									   pinit,
    									   2,
 									   NUMBERS, A_REVERSE, TRUE, FALSE);	//[show nums,?,?,?]
 
 
+   //TRACE (PIPELINE DIAGRAM)
+   widgets->tracelogwindow = newCDKScroll(	cdkscreen,
+										   TRACEOUTLOGDIMENSIONS,
+		   	   	   	   	   	   	   	   	   (char*)"<C></5>Execution Pipeline Diagram",
+										   pinit,
+			   	   	   	   	   	   	   	   2,
+			   	   	   	   	   	   	   	   NUMBERS, A_REVERSE, TRUE, FALSE);	//[show nums,?,?,?]
+
    /* Is the scrolling list NULL? */
    //TODO check all widgets are not null
-   if (	widgets->ROBList   == (CDKSCROLL *)NULL)
+   if (	widgets->tracelogwindow   == (CDKSCROLL *)NULL)
    {
       /* Exit CDK. */
       destroyCDKScreen (cdkscreen);
@@ -632,7 +454,7 @@ void UserInterface::drawALL()
 	//DRAW DECODE
 	   	drawCDKScroll (_interfaceWidgets.regmaptable, true);//(swindow, swindow->box); where box is bool true for box show.
 		drawCDKScroll (_interfaceWidgets.freelist, 1);
-		drawCDKScroll (_interfaceWidgets.activelist, 1);
+		/*drawCDKScroll (_interfaceWidgets.activelist, 1);	RETIRED WIDGET*/
 	//DRAW QUEUES
 		drawCDKScroll (_interfaceWidgets.fpQueue, true);
 		drawCDKScroll (_interfaceWidgets.addressQueue, true);
@@ -645,6 +467,8 @@ void UserInterface::drawALL()
 		drawCDKScroll (_interfaceWidgets.LSPipe,1);
 	//DRAW COMMIT / ROB
 		drawCDKScroll (_interfaceWidgets.ROBList, 1);
+	//DRAW TRACELOG
+		drawCDKScroll (_interfaceWidgets.tracelogwindow, true);
 }
 
 void UserInterface::blitInstructionList(vector<string>* InstructionListItems)
@@ -665,7 +489,7 @@ void UserInterface::blitInstructionList(vector<string>* InstructionListItems)
 void UserInterface::blitTraceWindow(vector<string>* TraceWindowListItems)
 {
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
-			TraceWindowListItems,		//1 In vector:				FreeListItems
+				TraceWindowListItems,	//1 In vector:				FreeListItems
 				tracewindowItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.freelistItems
 				tracewindowItemsCount,	//Needed for UI fix up (remove items over the new list length)
 				tracewindow		);		//3 Widget to blit to:		_interfaceWidgets.freelist
@@ -722,7 +546,7 @@ void UserInterface::UserInterface::blitFreeList(vector<string>* FreeListItems)
 #endif
 }
 
-void UserInterface::blitActiveList(		vector<string>* ActiveListItems)
+/*void UserInterface::blitActiveList(		vector<string>* ActiveListItems)
 {
 	ReloadItems(						//A helper macro to implement the body of UserInterface::blitROBList()
 				ActiveListItems,		//1 In vector:				FreeListItems
@@ -735,7 +559,7 @@ void UserInterface::blitActiveList(		vector<string>* ActiveListItems)
 	drawCDKScroll (_interfaceWidgets.activelist,	//Draw this window
 					true						);	//Draw with a box around it
 #endif
-}
+}													RETIRED WIDGET*/
 
 void UserInterface::blitRegMapTable(vector<string>* RegMapListItems)	//working OK Dec 6 2k14.
 {
@@ -775,14 +599,6 @@ void UserInterface::blitAddressQueueList(	vector<string>* AddressQueueListItems)
 				addressQueueItemsCount,
 				addressQueue		);	//3 Widget to blit to:		_interfaceWidgets.addressQueue
 
-/*	int 						loop = 0;
-				const char*					charROBListItems[AddressQueueListItems->size()];
-				vector<string>::iterator 	listit;
-				for(listit =AddressQueueListItems->begin(); listit != AddressQueueListItems->end(); listit++)
-				{
-					charROBListItems[loop] = convert(*listit);
-					loop++;
-				}*/
 				/*library bug. Remove items  if list shrank*/
 				while(_interfaceWidgetItemCount.addressQueueItemsCount > loop)
 					{
@@ -804,18 +620,6 @@ void UserInterface::blitAddressQueueList(	vector<string>* AddressQueueListItems)
 
 //TODO blit all on clock
 #ifdef DEBUG
-//	deleteCDKScrollItems(_interfaceWidgets.addressQueue);
-
-/*	while(_interfaceWidgetItemCount.addressQueueItemsCount > loop)
-	{
-		_interfaceWidgetItemCount.addressQueueItemsCount--;
-
-		deleteCDKScrollItem(_interfaceWidgets.addressQueue,
-							_interfaceWidgetItemCount.addressQueueItemsCount);
-	}
-	_interfaceWidgetItemCount.addressQueueItemsCount = loop;
-*/
-
 	drawCDKScroll (_interfaceWidgets.addressQueue,		//Draw this window
 					true						);	//Draw with a box around it
 #endif
@@ -910,6 +714,22 @@ void UserInterface::blitLSPipe(			vector<string>* LSPipeListItems)	//OK
 					true						);	//Draw with a box around it
 #endif
 }
+
+void UserInterface::blitTraceLogWindow(	vector<string>* TraceLogListItems)
+{
+	ReloadItems(							//A helper macro to implement the body of UserInterface::blitROBList()
+				TraceLogListItems,			//1 In vector:				TraceLogListItems
+				traceLogWindowItems,		//2	WidgetList to refresh:	_interfaceWidgetItems.traceLogWindowItems
+				traceLogWindowItemsCount,
+				tracelogwindow		);		//3 Widget to blit to:		_interfaceWidgets.tracelogwindow
+
+//TODO blit all on clock
+#ifdef DEBUG
+	drawCDKScroll (_interfaceWidgets.tracelogwindow,		//Draw this window
+					true						);	//Draw with a box around it
+#endif
+}
+
 
 }
 

@@ -15,6 +15,7 @@
 #include <sstream>
 #include <iostream>
 #include <fstream>
+#include "InterfaceLayout.h"	//all offsets of the UI
 
 using namespace std;
 
@@ -34,7 +35,7 @@ using namespace std;
 #define redirectStdinIO(UIinstance) std::ofstream out((UIinstance.getstdout_term()).c_str());	\
 									std::cout.rdbuf(out.rdbuf());							\
 									std::cin.rdbuf(out.rdbuf());							\
-									std::cout << "INTERFACE STREAM READY!" << std::endl;	\
+									/*std::cout << "INTERFACE STREAM READY!" << std::endl;*/\
 									std::cerr << "ERROR STREAM READY!" << std::endl;		\
 
 //====================================================================================================
@@ -50,7 +51,7 @@ typedef struct _UIWIDGETS
 	CDKSCROLL *ROBList;
 //SCHEDULE STUFF
 	CDKSCROLL *freelist;
-	CDKSCROLL *activelist;
+	//RETIRED WIDGET CDKSCROLL *activelist;
 	CDKSCROLL *regmaptable;	//http://www.fifi.org/doc/libcdk-dev/examples/swindow_ex.c
 //DECODE STUFF
 	CDKSCROLL *fpQueue;
@@ -62,6 +63,8 @@ typedef struct _UIWIDGETS
 	CDKSCROLL *ALUAPipe;
 	CDKSCROLL *ALUBPipe;
 	CDKSCROLL *LSPipe;
+//PIPETRACE WIDGIT
+	CDKSCROLL *tracelogwindow;
 
 	   _UIWIDGETS()
 	   {
@@ -69,7 +72,7 @@ typedef struct _UIWIDGETS
 		   tracewindow	= (CDKSCROLL *)NULL;
 		   ROBList		= (CDKSCROLL *)NULL;
 		   freelist		= (CDKSCROLL *)NULL;
-		   activelist	= (CDKSCROLL *)NULL;
+		   //RETIRED WIDGET activelist	= (CDKSCROLL *)NULL;
 		   regmaptable	= (CDKSCROLL *)NULL;	//http://www.fifi.org/doc/libcdk-dev/examples/swindow_ex.c
 		   fpQueue		= (CDKSCROLL *)NULL;
 		   addressQueue	= (CDKSCROLL *)NULL;
@@ -79,6 +82,7 @@ typedef struct _UIWIDGETS
 		   ALUAPipe		= (CDKSCROLL *)NULL;
 		   ALUBPipe		= (CDKSCROLL *)NULL;
 		   LSPipe		= (CDKSCROLL *)NULL;
+		   tracelogwindow=(CDKSCROLL *)NULL;
 	   }
 }uiWidgets, *puiWidgets;
 
@@ -91,7 +95,7 @@ typedef struct _UIWIDGETSITEMS
 	const char**	ROBListItems;
 	//SCHEDULE STUFF
 	const char** 	freelistItems;
-	const char** 	activelistItems;
+	//RETIRED WIDGET const char** 	activelistItems;
 	const char**	regmaptableItems;
 	//DECODE STUFF
 	const char**	fpQueueItems;
@@ -103,6 +107,8 @@ typedef struct _UIWIDGETSITEMS
 	const char**	ALUAPipeItems;
 	const char**	ALUBPipeItems;
 	const char**	LSPipeItems;
+	//PIPE TRACE WIDGIT
+	const char**	traceLogWindowItems;
 
 	_UIWIDGETSITEMS()
 	{
@@ -110,7 +116,7 @@ typedef struct _UIWIDGETSITEMS
 		tracewindowItems 		= NULL;
 		ROBListItems			= NULL;
 		freelistItems			= NULL;
-		activelistItems			= NULL;
+		//RETIRED WIDGET activelistItems			= NULL;
 		regmaptableItems		= NULL;
 		fpQueueItems			= NULL;
 		addressQueueItems		= NULL;
@@ -120,6 +126,7 @@ typedef struct _UIWIDGETSITEMS
 		ALUAPipeItems			= NULL;
 		ALUBPipeItems			= NULL;
 		LSPipeItems				= NULL;
+		traceLogWindowItems		= NULL;
 	}
 }uiWidgetsItems, *puiWidgetsItems;
 
@@ -132,7 +139,7 @@ typedef struct _UIWIDGETSIZES
 	int	ROBListItemsCount;
 	//SCHEDULE STUFF
 	int freelistItemsCount;
-	int activelistItemsCount;
+	//RETIRED WIDGET int activelistItemsCount;
 	int	regmaptableItemsCount;
 	//DECODE STUFF
 	int	fpQueueItemsCount;
@@ -144,6 +151,8 @@ typedef struct _UIWIDGETSIZES
 	int	ALUAPipeItemsCount;
 	int	ALUBPipeItemsCount;
 	int	LSPipeItemsCount;
+	//TRACE LOG WINDOW (PIPELINE DIAGRAM)
+	int traceLogWindowItemsCount;
 
 	_UIWIDGETSIZES()
 	{
@@ -151,7 +160,7 @@ typedef struct _UIWIDGETSIZES
 		tracewindowItemsCount	= 0;
 		ROBListItemsCount		= 0;
 		freelistItemsCount		= 0;
-		activelistItemsCount	= 0;
+		//RETIRED WIDGET activelistItemsCount	= 0;
 		regmaptableItemsCount	= 0;
 		fpQueueItemsCount		= 0;
 		addressQueueItemsCount	= 0;
@@ -161,6 +170,7 @@ typedef struct _UIWIDGETSIZES
 		ALUAPipeItemsCount		= 0;
 		ALUBPipeItemsCount		= 0;
 		LSPipeItemsCount		= 0;
+		traceLogWindowItemsCount= 0;
 	}
 }uiWidgetsItemCount, *puiWidgetsItemCount;
 
@@ -215,10 +225,10 @@ public:
 
 	//Functions to refresh the Output widget of each displayed r10k device
 	void blitInstructionList(	vector<string>* InstructionListItems);
-	void blitTraceWindow(		vector<string>* TraceWindowListItems);
+	void blitTraceWindow(		vector<string>* TraceWindowListItems);		//Incoming trace (actual trace)
 	void blitROBList(			vector<string>* ROBListItems);
 	void blitFreeList(			vector<string>* FreeListItems);
-	void blitActiveList(		vector<string>* ActiveListItems);
+	/*void blitActiveList(		vector<string>* ActiveListItems); RETIRED WIDGET*/
 	void blitRegMapTable(		vector<string>* RegMapListItems);
 	void blitFPQueueList(		vector<string>* FPQueueListItems);
 	void blitAddressQueueList(	vector<string>* AddressQueueListItems);
@@ -228,6 +238,7 @@ public:
 	void blitALUAPipe(			vector<string>* ALUAPipeListItems);
 	void blitALUBPipe(			vector<string>* ALUBPipeListItems);
 	void blitLSPipe(			vector<string>* LSPipeListItems);
+	void blitTraceLogWindow(	vector<string>* TraceLogListItems);	//Outgoing trace (pipeline diagram)
 
 	virtual ~UserInterface(){ destroyXterm(_cdkscreen, _cursesWin,&_interfaceWidgets, &_pt_stdout, &_pt_stderr);}
 

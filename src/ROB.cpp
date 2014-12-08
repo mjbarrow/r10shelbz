@@ -17,8 +17,25 @@ ROB::~ROB() {
 //Blit the appropriate widget
 void ROB::risingEdge()
 {
-/*	vector<string> stringROB;
-	unsigned int i;*/
+	vector<robEntry>::iterator i;
+	int loop;
+
+	//Note all in-flight instructions that have begun to execute
+	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
+	{
+		if(_executionPorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
+		{
+			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
+			{
+				if ((*i).m_rd.Key == _executionPorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+				{
+					(*i).didExecute = true;							//Retire that instruction in the ROB
+				}
+			}														//Now the scheduler will know another register is ready
+		}
+		_executionPorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
+													//If the execution pipes don't do anything next cycle
+	}
 
 	_myCycleCounter++;			//This is used so the ROB displays the cycle a trace line entered it.
 
@@ -26,29 +43,17 @@ void ROB::risingEdge()
 	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
 	//Add the new instructions into the ROB. They will live until pipes commit them
 	_issuedInstsToROB();
-
-/*			BLIT THE ROB ON THE FALLING EDGE
- * 	//Construct the correct type of input for the blit function
-	//An array of strings which it will blit out
-	for(i = 0; i < ROBbuffer.size(); i++)
-	{
-		stringROB.push_back(bufferLineToString(i));
-	}
-	if(stringROB.size() == 0)
-		stringROB.push_back("empty");
-
-	//trigger the blit function so that the screen output is refreshed of the ROB content
-	_ui->blitROBList(&stringROB);*/
 }
 
 //Perform the retirement of all instructions at the port pipes
-//On the clock falling edge
-void ROB::fallingEdge()//_retireEntry(traceinstruction retire)
+//On the clock falling edge, so we ought to update the UI here too
+void ROB::fallingEdge()
 {
 	vector<string> stringROB;
 	vector<robEntry>::iterator i;
 	int loop;
 
+	//Note all in-flight instructions that have finished executing
 	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
 	{
 		if(_retirePorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
@@ -56,7 +61,9 @@ void ROB::fallingEdge()//_retireEntry(traceinstruction retire)
 			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
 			{
 				if ((*i).m_rd.Key == _retirePorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+				{
 					(*i).retired = true;							//Retire that instruction in the ROB
+				}
 			}														//Now the scheduler will know another register is ready
 		}
 		_retirePorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
@@ -66,7 +73,7 @@ void ROB::fallingEdge()//_retireEntry(traceinstruction retire)
 
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
-	for(loop = 0; loop < ROBbuffer.size(); loop++)
+	for(loop = 0; loop < (int)ROBbuffer.size(); loop++)
 	{
 		stringROB.push_back(bufferLineToString(loop));
 	}
@@ -146,7 +153,7 @@ bool ROB::isDependencyMet(unsigned short machinereg)
 	return true;
 }
 
-//TODO: this should be synchronised with clock. It is not
+//TODO: BUG BUG!!! CAN COMMIT OUT OF ORDER AND DOES NOT SEEM TO ACCOUNT FOR A CIRCULAR BUFFER!
 
 void ROB::_commitTailInstructions(int count)
 {
@@ -169,17 +176,21 @@ void ROB::_commitTailInstructions(int count)
 		//We may only commit instructions which have no non-retired instructions that depend on it.
 		for(inflight = ROBbuffer.begin(); inflight < ROBbuffer.end(); inflight++)
 		{
-			//If this "inflight" instruction is not retired and it requires use of the commit candidate dest reg
+			//If this "inflight" instruction is not executing and it requires use of the commit candidate dest reg
 			//We cannot commit yet
-			if((!(*inflight).retired) && ((*inflight).m_rs == commitme.m_rd.machineReg))
+			if((!(*inflight).didExecute) && ((*inflight).m_rs == commitme.m_rd.machineReg))
 				return;
 			//If this "inflight" instruction is not retired and it requires use of the commit candidate dest reg
 			//We cannot commit yet
-			if((!(*inflight).retired) && ((*inflight).m_rt == commitme.m_rd.machineReg))
+			if((!(*inflight).didExecute) && ((*inflight).m_rt == commitme.m_rd.machineReg))
+				return;
+			//Also cannot commit if an older trace than commitme has not been committed yet
+			if(((*inflight).traceLineNo < commitme.traceLineNo ) && ((*inflight).traceLineNo != BADTraceNo))
 				return;
 		}
 
 		_FreeRegList->push(commitme.m_rd.machineReg);			//Free the machine destination register
+		_plogger->logCMTrace(commitme.traceLineNo);					//Add the instruction to the pipeline diagram
 																//Get a map iterator for the ISA reg-> machine reg
 																//For this trace line
 		ISARegToUnmap.ISAReg			= commitme.rd;			//Get the ISA reg for the trace line
@@ -192,7 +203,6 @@ void ROB::_commitTailInstructions(int count)
 			tail = 0;
 		count--;
 	}
-
 }
 
 bool ROB::isFull()

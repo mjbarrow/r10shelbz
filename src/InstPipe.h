@@ -13,6 +13,7 @@
 #include "instructions.h"
 #include "ROB.h"
 #include "userinterface.h"
+#include "TraceOutputLogger.h"
 
 //=====================================================================================================
 //									HELPER MACROS
@@ -23,8 +24,8 @@
 											{																	\
 												if((*pstg).intOp == BADOpcode)									\
 												{																\
-													opcodes << "| --- |";									\
-													destrs <<  "| --- |";									\
+													opcodes << "| --- |";										\
+													destrs <<  "| --- |";										\
 												}																\
 												else															\
 												{																\
@@ -43,11 +44,13 @@ namespace R10k {
 class InstPipeStage {
 public:
 
-	InstPipeStage(	UserInterface* 	ui,
-					ROB* 			pROB)//Initialize blank pipe stages
+	InstPipeStage(	UserInterface* 		ui,
+					TraceOutputLogger*	logger,
+					ROB* 				pROB	)//Initialize blank pipe stages
 	{
-		_ui = ui;
-		_ROB = pROB;
+		_ui 		= ui;
+		_plogger 	= logger;
+		_ROB 		= pROB;
 
 		_FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction());
 		_FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction());
@@ -58,15 +61,7 @@ public:
 
 	//Project spec function
 	void risingEdge();
-	void calc()//retirePipes()				//This will just attempt to retire the last element in the vector, which should
-	{										//represent a complete instruction.
-		_ROB->retireEntry(FPMRETIREPORT,_FPMpipe[2]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(FPARETIREPORT,_FPApipe[2]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe[0]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe[0]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
-		_ROB->retireEntry(LSARETIREPORT,_LS1pipe[1]/*.back()*/);	//Do not care if it cannot retire, the pipe may contain a bubble
-	}
-
+	void calc();
 
 	void FPMinPort(traceinstruction FPM)	{_DFPM 	= FPM;	}	//Set the port equal to what the Decode stage has passed in during "calc()"
 	void FPAinPort(traceinstruction FPA)	{_DFPA 	= FPA;	}	//As above
@@ -141,8 +136,9 @@ public:
 	virtual ~InstPipeStage(){}
 
 private:
-	UserInterface* _ui;
-	ROB* _ROB;
+	UserInterface* 		_ui;
+	TraceOutputLogger* 	_plogger;
+	ROB* 				_ROB;
 
 	//D ports that can be hammered by the logic of the scheduler
 	traceinstruction _DFPM;
@@ -150,7 +146,6 @@ private:
 	traceinstruction _DALU1;
 	traceinstruction _DALU2;
 	traceinstruction _DLS1;
-
 
 	//Actual pipes, on clock the first entry of each gets
 	vector<traceinstruction> _FPMpipe;

@@ -49,6 +49,7 @@ void InstFetchStage::calc()
 			break;
 
 		instructionstream.push_back(traceinstruction(traceline,_tracelinenumber));
+		_plogger->logIFTrace(_tracelinenumber);				//Log the instruction fetch for the pipeline diagram
 
 		loop++;
 		_tracelinenumber++;

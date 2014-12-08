@@ -15,6 +15,7 @@
 #include <queue>
 #include <map>
 #include "userinterface.h"
+#include "TraceOutputLogger.h"
 
 using namespace logic;
 
@@ -26,6 +27,7 @@ public:
 
 	/*Initialize FreeRegList where all renameReg's are free*/
 	InstDecodeStage(	UserInterface* 	ui,
+						TraceOutputLogger* logger,
 						InstSchedStage* pScheduler,
 						ROB* 			pROB,
 						freeRegList* 	pFreeRegList,
@@ -34,6 +36,7 @@ public:
 	{
 		int i;
 		_ui 				= ui;
+		_plogger				= logger;
 		_pScheduler 		= pScheduler;
 		_pROB 				= pROB;
 		_FreeRegList 		= pFreeRegList;
@@ -119,6 +122,7 @@ private:
 	string regmapEntryToString(regmappair entry);
 	//Use this to update the UI
 	UserInterface* 	_ui;
+	TraceOutputLogger* _plogger;
 
 	//Need to connect to some external hardware. Namely, an ROB buffer
 	ROB* 			_pROB;

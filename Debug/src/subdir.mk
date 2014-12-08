@@ -10,6 +10,7 @@ CPP_SRCS += \
 ../src/InstPipe.cpp \
 ../src/InstSched.cpp \
 ../src/ROB.cpp \
+../src/TraceOutputLogger.cpp \
 ../src/instructions.cpp \
 ../src/userinterface.cpp \
 ../src/utils.cpp 
@@ -21,6 +22,7 @@ OBJS += \
 ./src/InstPipe.o \
 ./src/InstSched.o \
 ./src/ROB.o \
+./src/TraceOutputLogger.o \
 ./src/instructions.o \
 ./src/userinterface.o \
 ./src/utils.o 
@@ -32,6 +34,7 @@ CPP_DEPS += \
 ./src/InstPipe.d \
 ./src/InstSched.d \
 ./src/ROB.d \
+./src/TraceOutputLogger.d \
 ./src/instructions.d \
 ./src/userinterface.d \
 ./src/utils.d 

@@ -15,6 +15,7 @@
 #include "utils.h"
 #include "instructions.h"
 #include "userinterface.h"
+#include "TraceOutputLogger.h"
 
 
 using namespace std;
@@ -31,11 +32,12 @@ class robEntry: public traceinstruction
 {
 public:
 	bool retired;				//you may only commit retired instructions
+	bool didExecute;
 
 	int instantiationcycle;		//this is for debug visibility mainly
 
-	robEntry()														{instantiationcycle = 0; retired = false;}
-	robEntry(traceinstruction* t, int c)	:traceinstruction(*t)	{instantiationcycle = c; retired = false; return;}
+	robEntry()														{instantiationcycle = 0; retired = false; didExecute = false;}
+	robEntry(traceinstruction* t, int c)	:traceinstruction(*t)	{instantiationcycle = c; retired = false; didExecute = false; return;}
 
 	bool operator==(const robEntry& rhs) const
 	{
@@ -48,6 +50,7 @@ public:
 				(rd == rhs.rd)			&&
 				(rt == rhs.rt)			&&
 				(retired == rhs.retired)&&
+				(didExecute == rhs.didExecute)	&&
 				(instantiationcycle == rhs.instantiationcycle)&&
 				(traceLineNo == rhs.traceLineNo)&&
 				(strOp.compare(rhs.strOp) == 0)		);
@@ -60,14 +63,16 @@ public:
 
 class ROB {
 public:
-	ROB(	UserInterface*	ui,
-			freeRegList* 	FreeRegList,
-			regmaptable* 	rmt			)
+	ROB(	UserInterface*		ui,
+			TraceOutputLogger* 	logger,
+			freeRegList* 		FreeRegList,
+			regmaptable* 		rmt			)
 	{
 		head = tail 	= 0;
 		_issuePortHead 	= 0;
 		_myCycleCounter = 0;
 		_ui 			= ui;
+		_plogger		= logger;
 		_FreeRegList 	= FreeRegList;
 		_regMapTable 	= rmt;
 		ROBbuffer.push_back(robEntry());		//Initialize first ROB entry for the "full" checking logic
@@ -96,6 +101,9 @@ public:
 	void retireEntry(	int retireport,													//Ex pipes call this during calc.
 						traceinstruction retire){_retirePorts[retireport] = retire;}	//To ensure forwarding, it is acted on during fallingEdge()
 
+	void entryExecuted(  int executeport,
+						 traceinstruction executing){_executionPorts[executeport] = executing;}
+
 	bool isDependencyMet(unsigned short machinereg);	//Used by scheduler to check dependencies
 														//Must be called after "retireEntry()"
 
@@ -109,10 +117,14 @@ private:
 	freeRegList* 		_FreeRegList;	//The ROB needs this when committing. It will free registers from here
 	regmaptable* 		_regMapTable;	//Also needed when committing, to remove
 	UserInterface*		_ui;			//Need this to blit out to the user interface
+	TraceOutputLogger*	_plogger;
 
+	//used in schedule timing resolution
 	traceinstruction _retirePorts[RETIREPORTCOUNT];
 	traceinstruction _issuedInsts[ISSUEWAYCOUNT];
 
+	//used in commit timing resolution
+	traceinstruction _executionPorts[RETIREPORTCOUNT];
 
 	std::vector<robEntry>ROBbuffer;
 
@@ -142,6 +154,7 @@ private:
 		os 	<< entry << ":\t|"
 			 << " DecCy# "	<< line.instantiationcycle
 			 << " rtrd? "	<< line.retired
+			 << " Exd? " 	<< line.didExecute
 			 << "  | "
 			 << " isa reg "	 <<hex<<"0x"<< line.rd << " <- isa reg: " <<hex<<"0x"<< line.rs << " "+line.strOp+" isa reg: " <<hex<<"0x"<< line.rt
 			 << "\t|\t"

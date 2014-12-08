@@ -13,6 +13,7 @@
 #include "instructions.h"
 #include "InstDecode.h"
 #include "userinterface.h"
+#include "TraceOutputLogger.h"
 
 #ifndef INSTFETCH_H_
 #define INSTFETCH_H_
@@ -23,21 +24,20 @@ namespace R10k {
 
 class InstFetchStage {
 public:
-//	string traceline;
-
-
 	vector<traceinstruction> instructionstream;
 
 
 	//Requires a fully qualified correct path to a tracefile
-	InstFetchStage(	UserInterface* 	ui,
-					InstDecodeStage* decode,
+	InstFetchStage(	UserInterface* 		ui,
+					InstDecodeStage* 	decode,
+					TraceOutputLogger*	logger,
 					const char*			TraceFile
 					)
 	{
 		_tracelinenumber = 0;	//for internal book keeping
 		_pdecstage = decode;
 		_ui = ui;
+		_plogger = logger;
 		fulltrace.open(TraceFile,std::ifstream::in);
 	}
 
@@ -50,9 +50,10 @@ public:
 private:
 	ifstream fulltrace;
 
-	InstDecodeStage* _pdecstage;
-	UserInterface*	_ui;
-	int 			_tracelinenumber;
+	InstDecodeStage* 	_pdecstage;
+	UserInterface*		_ui;
+	TraceOutputLogger* 	_plogger;
+	int 				_tracelinenumber;
 
 	string traceInstructionToString(int entry);
 };

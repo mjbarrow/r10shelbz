@@ -22,6 +22,7 @@
 #define BADInstKey -1
 #define BADOpcode BADInstKey
 #define BADOperand BADInstKey
+#define BADTraceNo BADInstKey
 
 #define needextra(x) (x & 0b000111)
 

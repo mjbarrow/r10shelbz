@@ -39,6 +39,9 @@ void InstDecodeStage::risingEdge()
 		_tracebufhead++;
 		if(_tracebufhead == MAXDECODEDINSTPERCYCLE)
 			_tracebufhead = 0;
+		//Add the Clocked in instructions to the pipeline diagram
+		if(_QTraceLines[i].intOp != BADOpcode)
+			_plogger->logIDTrace(_QTraceLines[i].traceLineNo);
 		i++;
 	}
 
@@ -66,12 +69,6 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 	int ActiveRegIndex = 0;
 	RegMapKey ISARegToFind;
 	ISARegToFind.Key = 0;
-
-	/*
-	 * 	ActiveReg ActiveList[renameRegCount];
-	 *	std::queue<int> FreeRegList;
-	 *	regmaptable RegMapTable;
-	 * */
 
 	//Cannot progress if we don't have any free machine registers.
 	if(_FreeRegList->size() < 3)

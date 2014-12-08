@@ -17,6 +17,7 @@
 #include "InstSched.h"
 #include "ROB.h"
 #include "userinterface.h"
+#include "TraceOutputLogger.h"
 
 using namespace std;
 using namespace R10k;
@@ -28,32 +29,40 @@ int main() {
 
 	int simulatorloop = 0;
 
+	TraceOutputLogger	uiPipeLineDiagram(	&UI,
+											"outtrace.txt");		//Writes out the pipeline diagram of execution
+
 //DEBUG INSTANTIATE ROB AND FETCH STAGE
 	freeRegList 		FreeRegList;				//Shared Hardware between Decode ROB
 	regmaptable 		r10kRegisterMap;			//Shared hardware
 	ISAreginstance 		r10kRegMapDisambiguator;	//Shared hardware between ROB Decode //this should wrap around, so the ROB may not be larger than 2^16
 
 
-	ROB 				r10kROB(&UI,					//Shared User interface
-								&FreeRegList,
-								&r10kRegisterMap	);	//Shared Hardware
+	ROB 				r10kCommit(	&UI,					//Shared User interface
+									&uiPipeLineDiagram,
+									&FreeRegList,
+									&r10kRegisterMap	);	//Shared Hardware
 
-	InstPipeStage 		r10kExecutionPipes(	&UI,
-											&r10kROB);
+	InstPipeStage 		r10kExecute(	&UI,
+										&uiPipeLineDiagram,
+										&r10kCommit);
 
-	InstSchedStage 		r10kScheduler(	&UI,
-										&r10kROB,					//Must resolve met dependencies using the ROB
-										&r10kExecutionPipes);		//Scheduler must fill pipes.
+	InstSchedStage 		r10kSchedule(	&UI,
+										&uiPipeLineDiagram,
+										&r10kCommit,					//Must resolve met dependencies using the ROB
+										&r10kExecute);		//Scheduler must fill pipes.
 
-	InstDecodeStage 	debugme(&UI,
-								&r10kScheduler,			//Decoder must fill the Scheduler queues.
-								&r10kROB,				//Decoder must make new entries in ROB
+	InstDecodeStage 	r10kDecode(&UI,
+								&uiPipeLineDiagram,
+								&r10kSchedule,			//Decoder must fill the Scheduler queues.
+								&r10kCommit,				//Decoder must make new entries in ROB
 								&FreeRegList,
 								&r10kRegisterMap,
 								&r10kRegMapDisambiguator);	//Needs to be able to add decoded instructions to the r10k ROB
 
 	InstFetchStage		r10kFetch(	&UI,
-									&debugme,
+									&r10kDecode,
+									&uiPipeLineDiagram,
 									"intrace.txt");		//Debug file only
 
 	//Redirect system IO to terminal (cout and printf)
@@ -65,31 +74,33 @@ int main() {
 	while(simulatorloop--)
 	{
 		cerr << "cycle :" << simulatorloop << endl;
-
+	//CLOCK
 		//IF CK
 		r10kFetch.risingEdge();
 		//ID CK
-		debugme.risingEdge();							//Clock in data from SetDtraces and refresh output from last cycle (nothing
+		r10kDecode.risingEdge();							//Clock in data from SetDtraces and refresh output from last cycle (nothing
+		//SCHED
+		r10kSchedule.risingEdge();
 		//EX CK
-		r10kExecutionPipes.risingEdge();
-		//ROB CK (COMMIT ?)
-		r10kROB.risingEdge();//TODO only allow the pipes calc to have effect at this point
-
-
-		r10kScheduler.risingEdge();
-		//r10kScheduler.printInstructionQueues();
-		//END ALL CK
-	//IF CALC
+		r10kExecute.risingEdge();
+		//COMMIT (ROB)
+		r10kCommit.risingEdge();
+		//Pipeline diagram also needs to clock
+		uiPipeLineDiagram.risingEdge();
+	//END CLOCK
+	//CALC
+		//IF CALC
 		r10kFetch.calc();
-	//ID CALC
-		debugme.calc();								//Do calculation on data just clocked in
-	//SCHED CALC
-		r10kROB.fallingEdge();//this ensures all ROB activity is done before  scheduling
-		r10kScheduler.calc();	//see r10k paper
-		//r10kScheduler.printInstructionQueues();
-	//EX CALC
-		r10kExecutionPipes.calc();
-
+		//ID CALC
+		r10kDecode.calc();
+		//COMMIT CALC (ROB).
+		r10kCommit.fallingEdge();		//this ensures all ROB activity is done before  scheduling
+		uiPipeLineDiagram.fallingEdge();//Just draw out the present status of the pipeline
+		//SCHED CALC
+		r10kSchedule.calc();	//see r10k paper, do scheduling based on registers just clocked in to Activelist/ROB
+		//EX CALC
+		r10kExecute.calc();
+	//END CALC
 	}
 
 	cerr << "Columbiano yea you know I lu dat" << endl; // prints !!!Hello World!!!

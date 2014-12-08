@@ -10,6 +10,28 @@
 namespace R10k
 {
 
+//====================================================================================
+//						REQUIRED PROJECT FUNCTIONS
+//====================================================================================
+void InstPipeStage::calc()				//This will just attempt to retire the last element in the vector, which should
+{										//represent a complete instruction.
+
+	//Note: /*.back()*/ does not work.
+	//This let sthe commit stage commit any instruction that was lingering to provide
+	//the first instructions in the pipe their dependencies
+	_ROB->entryExecuted(FPMRETIREPORT,_FPMpipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->entryExecuted(FPARETIREPORT,_FPApipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->entryExecuted(ALUARETIREPORT,_ALU1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->entryExecuted(ALUBRETIREPORT,_ALU2pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->entryExecuted(LSARETIREPORT,_LS1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+
+	//This lets the commit stage commit the instruction at the end of the pipe
+	_ROB->retireEntry(FPMRETIREPORT,_FPMpipe[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(FPARETIREPORT,_FPApipe[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(LSARETIREPORT,_LS1pipe[1]);	//Do not care if it cannot retire, the pipe may contain a bubble
+}
 
 void InstPipeStage::risingEdge()
 {
@@ -22,17 +44,27 @@ void InstPipeStage::risingEdge()
 	//Do register swizzle. Changes of the ports can't affect the pipes with this approach.
 	_FPMpipe.insert(_FPMpipe.begin(),_DFPM);	//Replace stage 1 with the input port value
 	_FPMpipe.pop_back();						//Remove oldest value. This makes rendering very easy to do
+	if(_DFPM.intOp != BADOpcode)				//Add this instruction to the pipeline diagram (if it is one)
+		_plogger->logEXTrace(_DFPM.traceLineNo);//There was an instruction, add it to the pipeline diagram
 	_DFPM = traceinstruction();					//Reset to a default value in case the port is not touched next cycle.
 	_FPApipe.insert(_FPApipe.begin(),_DFPA);
 	_FPApipe.pop_back();	//As above
+	if(_DFPA.intOp != BADOpcode)
+		_plogger->logEXTrace(_DFPA.traceLineNo);
 	_DFPA = traceinstruction();
 	_ALU1pipe.insert(_ALU1pipe.begin(),_DALU1);
 	_ALU1pipe.pop_back();	//as above
+	if(_DALU1.intOp != BADOpcode)
+		_plogger->logEXTrace(_DALU1.traceLineNo);
 	_DALU1 = traceinstruction();
 	_ALU2pipe.insert(_ALU2pipe.begin(),_DALU2);
 	_ALU2pipe.pop_back();	//as above
+	if(_DALU2.intOp != BADOpcode)
+		_plogger->logEXTrace(_DALU2.traceLineNo);
 	_DALU2 = traceinstruction();
 	_LS1pipe.insert(_LS1pipe.begin(),_DLS1);
+	if(_DLS1.intOp != BADOpcode)
+		_plogger->logEXTrace(_DLS1.traceLineNo);
 	_DLS1 = traceinstruction();
 	_LS1pipe.pop_back();	//as above
 

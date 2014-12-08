@@ -16,6 +16,7 @@
 #include "InstPipe.h"
 #include "ROB.h"			//This needs to do something to the ROB? Actually I dont think so...
 #include "userinterface.h"
+#include "TraceOutputLogger.h"
 
 //This is used for debug, so is much more verbose than what appears in the UI version
 #define PrintQueueEntry(i,x) 				cerr << "<|| #" << i;	\
@@ -110,11 +111,13 @@ public:
 
 class InstSchedStage {
 public:
-	InstSchedStage(	UserInterface*	ui,
-					ROB* 			ROB,
-					InstPipeStage* 	pPipes)
+	InstSchedStage(	UserInterface*		ui,
+					TraceOutputLogger*	logger,
+					ROB* 				ROB,
+					InstPipeStage* 		pPipes)
 	{
 		_ui 									= ui;
+		_plogger								= logger;
 		_ROB 									= ROB;
 		_pPipes 								= pPipes;
 		_scheduledInstructions.scheduledFPM 	= _FPInstructionQueue.end();
@@ -182,7 +185,7 @@ public:
 		cerr << "\t\t\t\t\t================================" << endl;
 	}
 
-	virtual ~InstSchedStage();
+	virtual ~InstSchedStage(){}
 
 private:
 	ROB* 				_ROB;
@@ -193,6 +196,7 @@ private:
 	ALUQueue			_ALUInstructionQueue;
 	LSQueue				_LSInstructionQueue;
 	UserInterface*		_ui;			//Need this to blit out to the user interface
+	TraceOutputLogger*	_plogger;		//Used to drive the graphical pipeline diagram (also dumped out)
 
 	//Logic related stuff
 	//These are to let the Decoder stage load up ports to this stage

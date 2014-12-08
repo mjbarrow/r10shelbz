@@ -9,10 +9,6 @@
 
 namespace R10k {
 
-InstSchedStage::~InstSchedStage() {
-	// TODO Auto-generated destructor stub
-}
-
 //====================================================================================================
 //								PROJECT SPEC FUNCTIONS
 //====================================================================================================
@@ -32,7 +28,10 @@ void InstSchedStage::risingEdge()
 	for(i = 0; i < FPQPORTCOUNT; i++)
 	{
 		if(_DFPQueue[_DFPQidx].intOp != BADOpcode)
-			_FPInstructionQueue.push_back(_DFPQueue[_DFPQidx]);	//Add something to the execution pipes if this port has data
+		{
+			_FPInstructionQueue.push_back(_DFPQueue[_DFPQidx]);		//Add something to the execution pipes if this port has data
+			_plogger->logISTrace(_DFPQueue[_DFPQidx].traceLineNo); 	//Add scheduled instruction to the pipeline diagram
+		}
 
 		_DFPQueue[_DFPQidx] = FPQueueEntry();	//Clear the port in case the connected stage does not set it next cycle
 		_DFPQidx++;
@@ -44,7 +43,10 @@ void InstSchedStage::risingEdge()
 	for(i = 0; i < ALUQPORTCOUNT; i++)
 	{
 		if(_DALUQueue[_DALUQidx].intOp != BADOpcode)
+		{
 			_ALUInstructionQueue.push_back(_DALUQueue[_DALUQidx]);	//Add something to the execution pipes if this port has data
+			_plogger->logISTrace(_DALUQueue[_DALUQidx].traceLineNo);//Add to the pipeline diagram too.
+		}
 
 		_DALUQueue[_DALUQidx] = ALUQueueEntry();	//Clear the port in case the connected stage does not set it next cycle
 		_DALUQidx++;
@@ -56,7 +58,10 @@ void InstSchedStage::risingEdge()
 	for(i = 0; i < ADDQPORTCOUNT; i++)
 	{
 		if(_DLSQueue[_DLSQidx].intOp != BADOpcode)
+		{
 			_LSInstructionQueue.push_back(_DLSQueue[_DLSQidx]);	//Add something to the execution pipes if this port has data
+			_plogger->logISTrace(_DLSQueue[_DLSQidx].traceLineNo);//And add to the pipeline diagram
+		}
 
 		_DLSQueue[_DLSQidx] = LSQueueEntry();	//Clear the port in case the connected stage does not set it next cycle
 		_DLSQidx++;
@@ -71,22 +76,22 @@ void InstSchedStage::risingEdge()
 	{
 		stringFPInsQueue.push_back(FPQueueEntryToString(i));
 	}
-//	if(stringFPInsQueue.size() == 0)
-//		stringFPInsQueue.push_back("empty");
+	if(stringFPInsQueue.size() == 0)
+		stringFPInsQueue.push_back("empty");
 
 	for(i = 0; i < _ALUInstructionQueue.size(); i++)
 	{
 		stringALUInsQueue.push_back(ALUQueueEntryToString(i));
 	}
-//	if(stringALUInsQueue.size() == 0)
-//		stringALUInsQueue.push_back("empty");
+	if(stringALUInsQueue.size() == 0)
+		stringALUInsQueue.push_back("empty");
 
 	for(i = 0; i < _LSInstructionQueue.size(); i++)
 	{
 		stringLSInsQueue.push_back(LSQueueEntryToString(i));
 	}
-//	if(stringLSInsQueue.size() == 0)
-//		stringLSInsQueue.push_back("empty");
+	if(stringLSInsQueue.size() == 0)
+		stringLSInsQueue.push_back("empty");
 
 	//trigger the blit function so that the screen output is refreshed of the queues content
 	//Blit all queues
