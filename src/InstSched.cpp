@@ -133,15 +133,15 @@ void InstSchedStage::calc()//promoQueueToPipe()
 		{_pPipes->FPAinPort(traceinstruction());}
 	if(_scheduledInstructions.scheduledALU1 <16)//!= _ALUInstructionQueue.end())
 	{
-		_pPipes->ALUAinPort(_FPInstructionQueue[_scheduledInstructions.scheduledALU1]);
-		_ALUInstructionQueue.erase(_FPInstructionQueue.begin() +  _scheduledInstructions.scheduledALU1);
+		_pPipes->ALUAinPort(_ALUInstructionQueue[_scheduledInstructions.scheduledALU1]);
+		_ALUInstructionQueue.erase(_ALUInstructionQueue.begin() +  _scheduledInstructions.scheduledALU1);
 	}
 	else
 		{_pPipes->ALUAinPort(traceinstruction());}
 	if(_scheduledInstructions.scheduledALU2 <16)//!= _ALUInstructionQueue.end())
 	{
-		_pPipes->ALUBinPort(_FPInstructionQueue[_scheduledInstructions.scheduledALU2]);
-		_ALUInstructionQueue.erase(_FPInstructionQueue.begin() +  _scheduledInstructions.scheduledALU2);
+		_pPipes->ALUBinPort(_ALUInstructionQueue[_scheduledInstructions.scheduledALU2]);
+		_ALUInstructionQueue.erase(_ALUInstructionQueue.begin() +  _scheduledInstructions.scheduledALU2);
 	}
 	else
 		{_pPipes->ALUBinPort(traceinstruction());}
@@ -442,7 +442,8 @@ void InstSchedStage::_getFirsttwoALU(int* ALU1idx, int* ALU2idx)//ALUQueueEntryi
 			*ALU1idx = loop; firstALUFound = true;
 		}
 		//First add logic
-		if(	(!secondALUFound)&&
+		if(	(loop != *ALU1idx ) &&
+			(!secondALUFound)&&
 			(*qitr).m_rs_rdy &&
 			(*qitr).m_rt_rdy	)
 		{

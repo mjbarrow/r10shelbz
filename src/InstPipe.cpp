@@ -20,20 +20,12 @@ void InstPipeStage::calc()				//This will just attempt to retire the last elemen
 {										//represent a complete instruction.
 
 	//Note: /*.back()*/ does not work.
-/*	//This let sthe commit stage commit any instruction that was lingering to provide
-	//the first instructions in the pipe their dependencies
-	_ROB->entryExecuted(FPMRETIREPORT,_FPMpipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->entryExecuted(FPARETIREPORT,_FPApipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->entryExecuted(ALUARETIREPORT,_ALU1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->entryExecuted(ALUBRETIREPORT,_ALU2pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->entryExecuted(LSARETIREPORT,_LS1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-*/
 	//This lets the commit stage commit the instruction at the end of the pipe
-	_ROB->retireEntry(FPMRETIREPORT,_FPMpipe[3/*2*/]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(FPARETIREPORT,_FPApipe[3/*2*/]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe[1/*0*/]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe[1/*0*/]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(LSARETIREPORT,_LS1pipe[2/*1*/]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(FPMRETIREPORT,_FPMpipe[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(FPARETIREPORT,_FPApipe[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(LSARETIREPORT,_LS1pipe[1]);	//Do not care if it cannot retire, the pipe may contain a bubble
 }
 
 void InstPipeStage::risingEdge()
