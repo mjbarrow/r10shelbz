@@ -71,11 +71,14 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 	ISARegToFind.Key = 0;
 
 	//Cannot progress if we don't have any free machine registers.
-	if(_FreeRegList->size() < 3)
+	if(	(traceline.intOp & ( I| A |M)) &&						//Return if you don't have 3
+		(_FreeRegList->size() < 3)	)
 	{
-//TODO: BUG BUG! CERTAIN INSTRUCTIONS ONLY NEED ONE REGISTER!!
-//TODO: Stall housekeeping, other housekeeping
-//NO! STALL STUFF ETC SHOULD BE DONE IN CLOCK????
+		return false;					//Cannot schedule an instruction, not enough FreeRegisters
+	}
+	if(((traceline.intOp) & (L | S | B )) &&	//These instructions only require 2  FreeRegisters max
+		(_FreeRegList->size() < 2)	)
+	{
 		return false;					//Cannot schedule an instruction, not enough FreeRegisters
 	}
 
@@ -83,6 +86,7 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 	if(_pROB->isFull())
 		return false;					//Cannot schedule an instruction, the ROB is full
 
+/*CAUSED CHICKEN AND EGG DEPENDENCE
 	//We don't care about the ISA register mapping of the output register except for hazards
 	//So, we will take a free reg from the FreeRegList to write output to first...
 	ActiveRegIndex = _FreeRegList->front();	//Get an index to the oldest free reg from the FreeRegList
@@ -91,40 +95,39 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 	//Find the ISA register mapping for the instruction output register if it exists in the
 	//RegMapTable
 	ISARegToFind.ISAReg = traceline.rd;
-	if(_RegMapTable->find(ISARegToFind.Key) != _RegMapTable->end())
-	{
-		//This ISA register has already been mapped!
-		ISARegToFind.InstanceCounter = (*_ISAInstanceRegmap)[ISARegToFind.ISAReg];
-		ISARegToFind.InstanceCounter++;
-		(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = ISARegToFind.InstanceCounter;
 
-		(*_RegMapTable)[ISARegToFind.Key] 	= ActiveRegIndex;
-		traceline.m_rd.machineReg 			= ActiveRegIndex;				//Modify the input trace destination to write to the correct Active Register
-		traceline.m_rd.ISAInstanceCounter 	= ISARegToFind.InstanceCounter;	//Keep a copy of the Key, you can use this in the ROB to remove this mapping
-																			//From the register map
+	//Dont map the ISA reg if it is BAD (some instructions do not modify any ISA registers
+	if(ISARegToFind.ISAReg != BADOperand)
+	{	//Begin, rd exists so trace output register map is required
+		if(_RegMapTable->find(ISARegToFind.Key) != _RegMapTable->end())
+		{
+			//This ISA register has already been mapped!
+			ISARegToFind.InstanceCounter = (*_ISAInstanceRegmap)[ISARegToFind.ISAReg];
+			ISARegToFind.InstanceCounter++;
+			(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = ISARegToFind.InstanceCounter;
 
-		//ISA register maps to an active register. oh crap, we cannot schedule it
-		//And will have to stall
-//TODO: stall mechanism
-//NO! SHOULD BE DONE IN CLOCK
+			(*_RegMapTable)[ISARegToFind.Key] 	= ActiveRegIndex;
+			traceline.m_rd.machineReg 			= ActiveRegIndex;				//Modify the input trace destination to write to the correct Active Register
+			traceline.m_rd.ISAInstanceCounter 	= ISARegToFind.InstanceCounter;	//Keep a copy of the Key, you can use this in the ROB to remove this mapping
+																				//From the register map
+
+			//ISA register maps to an active register. oh crap, we cannot schedule it
+			//And will have to stall
+		}
+		else
+		{
+			//Reserve a register normally in the RegMapTable
+			(*_RegMapTable)[ISARegToFind.Key] = ActiveRegIndex;
+			(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = 0;	//Always start counting at 0 in computer science ;)
+
+			traceline.m_rd.machineReg 			= ActiveRegIndex;	//Modify the input trace destination to write to the correct Active Register
+			traceline.m_rd.ISAInstanceCounter 	= 0;				//This was the 0'th time that this ISAReg
+		}	//End, rd exists so trace output register map is required
 	}
-	else
-	{
-		//Reserve a register normally in the RegMapTable
-		(*_RegMapTable)[ISARegToFind.Key] = ActiveRegIndex;
-		(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = 0;	//Always start counting at 0 in computer science ;)
 
-		traceline.m_rd.machineReg 			= ActiveRegIndex;	//Modify the input trace destination to write to the correct Active Register
-		traceline.m_rd.ISAInstanceCounter 	= 0;				//This was the 0'th time that this ISAReg
-	}
-
-
-//TODO: Should this be in the decode or execute stage? I believe we should stall in the
-//Decode stage.
-//TODO:
 	//Determine if we will create a hazard by issuing this instruction
 	//What type of inst is that instruction? how many cycles before it is safe to write this instruction?
-
+*/
 	//Find the ISA register mapping for the rs operand in the RegMapTable
 	ISARegToFind.Key = 0;	//clear.
 	ISARegToFind.ISAReg = traceline.rs;
@@ -163,35 +166,77 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 	//Find the ISA register mapping for the rt operand in the RegMapTable
 	ISARegToFind.Key = 0; //clear
 	ISARegToFind.ISAReg = traceline.rt;
-	if(_RegMapTable->find(ISARegToFind.Key) != _RegMapTable->end())
+	if(traceline.rt != BADOperand)	//Certain classes of instruction (Load) do not have an rt register. rt mapping may be ignored for them
 	{
+		if(_RegMapTable->find(ISARegToFind.Key) != _RegMapTable->end())
+		{
 
-		//That means that the operand can be found using the machine register that corresponds
-		//To this ISA register. This instruction must wait for that register to be
-		//Written to
+			//That means that the operand can be found using the machine register that corresponds
+			//To this ISA register. This instruction must wait for that register to be
+			//Written to
 
-		//It must get the latest instance of that ISA register though!
-		ISARegToFind.InstanceCounter = (*_ISAInstanceRegmap)[ISARegToFind.ISAReg];
+			//It must get the latest instance of that ISA register though!
+			ISARegToFind.InstanceCounter = (*_ISAInstanceRegmap)[ISARegToFind.ISAReg];
 
-		traceline.m_rt = (*_RegMapTable)[ISARegToFind.Key];
-		//rt operand is converted OK!
+			traceline.m_rt = (*_RegMapTable)[ISARegToFind.Key];
+			//rt operand is converted OK!
+		}
+		else
+		{
+			//if it is not in the RegMapTable???
+			//You would copy from the real reg file into the active list.
+			//That would not happen until later, but you would reserve one entry now (do that)
+
+			//Remove an entry from the active list
+			ActiveRegIndex = _FreeRegList->front();	//Get an index to the oldest free reg from the FreeRegList
+			_FreeRegList->pop();						//Remove the oldest free reg from the FreeRegList
+
+			//Reserve a register normally in the RegMapTable
+			(*_RegMapTable)[ISARegToFind.Key] = ActiveRegIndex;
+			(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = 0;				//If someone wants to write to this ISA reg, they better wait.
+
+			traceline.m_rt = ActiveRegIndex;	//Modify the input trace destination to write to the correct Active Register
+		}
 	}
-	else
-	{
-		//if it is not in the RegMapTable???
-		//You would copy from the real reg file into the active list.
-		//That would not happen until later, but you would reserve one entry now (do that)
+//DEBUG MOVED rd ASSIGN HERE TO AVOID CHICKEN AND EGG WHERE RD <- Rx
+	//We don't care about the ISA register mapping of the output register except for hazards
+	//So, we will take a free reg from the FreeRegList to write output to first...
+	ActiveRegIndex = _FreeRegList->front();	//Get an index to the oldest free reg from the FreeRegList
+	_FreeRegList->pop();						//Remove the oldest free reg from the FreeRegList
 
-		//Remove an entry from the active list
-		ActiveRegIndex = _FreeRegList->front();	//Get an index to the oldest free reg from the FreeRegList
-		_FreeRegList->pop();						//Remove the oldest free reg from the FreeRegList
+	//Find the ISA register mapping for the instruction output register if it exists in the
+	//RegMapTable
+	ISARegToFind.ISAReg = traceline.rd;
 
-		//Reserve a register normally in the RegMapTable
-		(*_RegMapTable)[ISARegToFind.Key] = ActiveRegIndex;
-		(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = 0;				//If someone wants to write to this ISA reg, they better wait.
+	//Dont map the ISA reg if it is BAD (some instructions do not modify any ISA registers
+	if(ISARegToFind.ISAReg != BADOperand)
+	{	//Begin, rd exists so trace output register map is required
+		if(_RegMapTable->find(ISARegToFind.Key) != _RegMapTable->end())
+		{
+			//This ISA register has already been mapped!
+			ISARegToFind.InstanceCounter = (*_ISAInstanceRegmap)[ISARegToFind.ISAReg];
+			ISARegToFind.InstanceCounter++;
+			(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = ISARegToFind.InstanceCounter;
 
-		traceline.m_rt = ActiveRegIndex;	//Modify the input trace destination to write to the correct Active Register
+			(*_RegMapTable)[ISARegToFind.Key] 	= ActiveRegIndex;
+			traceline.m_rd.machineReg 			= ActiveRegIndex;				//Modify the input trace destination to write to the correct Active Register
+			traceline.m_rd.ISAInstanceCounter 	= ISARegToFind.InstanceCounter;	//Keep a copy of the Key, you can use this in the ROB to remove this mapping
+																				//From the register map
+
+			//ISA register maps to an active register. oh crap, we cannot schedule it
+			//And will have to stall
+		}
+		else
+		{
+			//Reserve a register normally in the RegMapTable
+			(*_RegMapTable)[ISARegToFind.Key] = ActiveRegIndex;
+			(*_ISAInstanceRegmap)[ISARegToFind.ISAReg] = 0;	//Always start counting at 0 in computer science ;)
+
+			traceline.m_rd.machineReg 			= ActiveRegIndex;	//Modify the input trace destination to write to the correct Active Register
+			traceline.m_rd.ISAInstanceCounter 	= 0;				//This was the 0'th time that this ISAReg
+		}	//End, rd exists so trace output register map is required
 	}
+//END DEBUG CHICKEN AND EGG
 
 	//Should now add the instruction to the Instruction queue and ROB.
 	//This is in accordance with the R10k paper
@@ -208,7 +253,7 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 		else
 			return false;							//Something is wrong, perhaps this member was called in error?
 	}
-	if(traceline.intOp & (I | B))					//Put branches and integer ops on integer queue
+	if(traceline.intOp == I)					//Put branches and integer ops on integer queue
 	{
 		if(!_pScheduler->isALUQueueFull())
 		{
@@ -230,6 +275,9 @@ bool InstDecodeStage::Decode(traceinstruction traceline)	//return success if ok,
 		else
 			return false;							//Oh dear, something is logically wrong. We should never get here!
 	}
+//TODO Support branch resolution
+	if(traceline.intOp == B)
+		cerr << "ERROR! CANNOT HANDLE BRANCH INSTRUCTION!";
 
 	return true;
 }

@@ -69,9 +69,9 @@ int main() {
 	redirectStdinIO(UI);
 	//TODO Make use of second debug terminal redirectallIO(UI)
 
-	simulatorloop = 14;
+	simulatorloop = 0;
 
-	while(simulatorloop--)
+	while(simulatorloop++ < 20)
 	{
 		cerr << "cycle :" << simulatorloop << endl;
 	//CLOCK
@@ -87,19 +87,24 @@ int main() {
 		r10kCommit.risingEdge();
 		//Pipeline diagram also needs to clock
 		uiPipeLineDiagram.risingEdge();
+//FALLING EDGE COMPLETES BEFORE CALC
+		r10kCommit.fallingEdge();		//this ensures all ROB activity is done before  scheduling
+//		uiPipeLineDiagram.fallingEdge();//Just draw out the present status of the pipeline
+
 	//END CLOCK
 	//CALC
 		//IF CALC
 		r10kFetch.calc();
 		//ID CALC
 		r10kDecode.calc();
-		//COMMIT CALC (ROB).
-		r10kCommit.fallingEdge();		//this ensures all ROB activity is done before  scheduling
-		uiPipeLineDiagram.fallingEdge();//Just draw out the present status of the pipeline
 		//SCHED CALC
 		r10kSchedule.calc();	//see r10k paper, do scheduling based on registers just clocked in to Activelist/ROB
 		//EX CALC
 		r10kExecute.calc();
+		//COMMIT CALC (ROB).
+//		r10kCommit.fallingEdge();		//this ensures all ROB activity is done before  scheduling
+		uiPipeLineDiagram.fallingEdge();//Just draw out the present status of the pipeline
+
 	//END CALC
 	}
 

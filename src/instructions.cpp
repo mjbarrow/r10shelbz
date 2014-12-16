@@ -185,7 +185,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 	{
 		//Should have an opcode. :( Fail.
 		std::cerr << "bad operand 1" << std::endl;
-		return;
+		//return;
 	}
 	//Get rt
 	if ((pos = traceline.find(delimiter)) != std::string::npos)
@@ -203,7 +203,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 	{
 		//Should have an opcode. :( Fail.
 		std::cerr << "bad operand 2" << std::endl;
-		return;
+		//return;
 	}
 
 	if(needextra(intOp))
@@ -224,7 +224,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 		{
 			//Should have an opcode. :( Fail.
 			std::cerr << "bad rd" << std::endl;
-			return;
+			//return;
 		}
 		//Get extra if needed
 		ss << std::hex << traceline;
@@ -246,6 +246,11 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 			ss >> rd;
 		}
 	}
+	//Swizzle registers for consistency regarding dependency checks and memory disambigation
+	if(intOp == L)						//Load instructions require reg swizzling
+		{rd = rt; rt = BADOperand;}
+	if((intOp == S) || (intOp == B))
+		rd = BADOperand;
 
 }
 
@@ -255,7 +260,6 @@ traceinstruction::traceinstruction()
 	traceLineNo = intOp = m_rs = rs = m_rt = rt = m_rd.Key = rd = extra = -1;
 }
 
-traceinstruction::~traceinstruction()
-{}
+traceinstruction::~traceinstruction(){}
 
 } /* namespace R10k */

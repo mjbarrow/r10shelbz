@@ -110,54 +110,55 @@ void InstSchedStage::calc()//promoQueueToPipe()
 {
 	//First resolve all dependencies
 	_resolveSchedDependencies();
+
 	//Now schedule from all available instructions (without pending dependencies)
 
 	//prepare the _scheduledInstructions (without pending dependencies), which will be fed into the pipe.
 	_arbitrateQueues();
 
 //NOW CHUCK _scheduledInstructions at the pipe
-	if(_scheduledInstructions.scheduledFPM != _FPInstructionQueue.end())
+	if(_scheduledInstructions.scheduledFPM <16)//!= _FPInstructionQueue.end())
 	{
-		_pPipes->FPMinPort(*_scheduledInstructions.scheduledFPM);
-		_FPInstructionQueue.erase(_scheduledInstructions.scheduledFPM);
+		_pPipes->FPMinPort(_FPInstructionQueue[_scheduledInstructions.scheduledFPM]);
+		_FPInstructionQueue.erase(_FPInstructionQueue.begin() + _scheduledInstructions.scheduledFPM);
 	}
 	else
 		{_pPipes->FPMinPort(traceinstruction());}
-	if(_scheduledInstructions.scheduledFPA != _FPInstructionQueue.end())
+	if(_scheduledInstructions.scheduledFPA <16)//!= _FPInstructionQueue.end())
 	{
-		_pPipes->FPAinPort(*_scheduledInstructions.scheduledFPA);
-		_FPInstructionQueue.erase(_scheduledInstructions.scheduledFPA);
+		_pPipes->FPAinPort(_FPInstructionQueue[_scheduledInstructions.scheduledFPA]);
+		_FPInstructionQueue.erase(_FPInstructionQueue.begin() + _scheduledInstructions.scheduledFPA);
 	}
 	else
 		{_pPipes->FPAinPort(traceinstruction());}
-	if(_scheduledInstructions.scheduledALU1 != _ALUInstructionQueue.end())
+	if(_scheduledInstructions.scheduledALU1 <16)//!= _ALUInstructionQueue.end())
 	{
-		_pPipes->ALUAinPort(*_scheduledInstructions.scheduledALU1);
-		_ALUInstructionQueue.erase(_scheduledInstructions.scheduledALU1);
+		_pPipes->ALUAinPort(_FPInstructionQueue[_scheduledInstructions.scheduledALU1]);
+		_ALUInstructionQueue.erase(_FPInstructionQueue.begin() +  _scheduledInstructions.scheduledALU1);
 	}
 	else
 		{_pPipes->ALUAinPort(traceinstruction());}
-	if(_scheduledInstructions.scheduledALU2 != _ALUInstructionQueue.end())
+	if(_scheduledInstructions.scheduledALU2 <16)//!= _ALUInstructionQueue.end())
 	{
-		_pPipes->ALUBinPort(*_scheduledInstructions.scheduledALU2);
-		_ALUInstructionQueue.erase(_scheduledInstructions.scheduledALU2);
+		_pPipes->ALUBinPort(_FPInstructionQueue[_scheduledInstructions.scheduledALU2]);
+		_ALUInstructionQueue.erase(_FPInstructionQueue.begin() +  _scheduledInstructions.scheduledALU2);
 	}
 	else
 		{_pPipes->ALUBinPort(traceinstruction());}
-	if(_scheduledInstructions.scheduledLS1 != _LSInstructionQueue.end())
+	if(_scheduledInstructions.scheduledLS1 <16)//!= _LSInstructionQueue.end())
 	{
-		_pPipes->LSAinPort(*_scheduledInstructions.scheduledLS1);
-		_LSInstructionQueue.erase(_scheduledInstructions.scheduledLS1);
+		_pPipes->LSAinPort(_LSInstructionQueue[_scheduledInstructions.scheduledLS1]);
+		_LSInstructionQueue.erase(_LSInstructionQueue.begin() +  _scheduledInstructions.scheduledLS1);
 	}
 	else
 		{_pPipes->LSAinPort(traceinstruction());}
 
 	//Clear all scheduled iterators.
-	_scheduledInstructions.scheduledFPM = 	_FPInstructionQueue.end();
-	_scheduledInstructions.scheduledFPA = 	_FPInstructionQueue.end();
-	_scheduledInstructions.scheduledALU1 = 	_ALUInstructionQueue.end();
-	_scheduledInstructions.scheduledALU2 = 	_ALUInstructionQueue.end();
-	_scheduledInstructions.scheduledLS1 = 	_LSInstructionQueue.end();
+	_scheduledInstructions.scheduledFPM = 	16;//_FPInstructionQueue.end();
+	_scheduledInstructions.scheduledFPA = 	16;//_FPInstructionQueue.end();
+	_scheduledInstructions.scheduledALU1 = 	16;//_ALUInstructionQueue.end();
+	_scheduledInstructions.scheduledALU2 = 	16;//_ALUInstructionQueue.end();
+	_scheduledInstructions.scheduledLS1 = 	16;//_LSInstructionQueue.end();
 
 }
 
@@ -177,14 +178,34 @@ void InstSchedStage::_readyFPQueue()
 		if(! (*qitr).m_rs_rdy)						//Attempt to meet dependency for rs operand
 		{
 			//Search ROB for m_rs
-			if(_ROB->isDependencyMet((*qitr).m_rs))
+			if(_ROB->isDependencyMet((*qitr).m_rs))					//Check ROB
 				(*qitr).m_rs_rdy = true;
+			else if(_pPipes->FPAforwardAvailable((*qitr).m_rs))		//Check FP
+				(*qitr).m_rs_rdy = true;
+			else if(_pPipes->FPMforwardAvailable((*qitr).m_rs))
+				(*qitr).m_rs_rdy = true;
+			else if(_pPipes->ALU1forwardAvailable(qitr->m_rs))		//Check ALU
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->ALU2forwardAvailable(qitr->m_rs))
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->LS1RegforwardAvailable(qitr->m_rs))	//Check LS
+				qitr->m_rs_rdy = true;
 		}
 		if(! (*qitr).m_rt_rdy)
 		{
 			//Search ROB for m_rt
-			if(_ROB->isDependencyMet((*qitr).m_rt))
+			if(_ROB->isDependencyMet((*qitr).m_rt))					//Check ROB
 				(*qitr).m_rt_rdy = true;
+			else if(_pPipes->FPAforwardAvailable((*qitr).m_rt))		//Check FP
+				(*qitr).m_rt_rdy = true;
+			else if(_pPipes->FPMforwardAvailable((*qitr).m_rt))
+				(*qitr).m_rt_rdy = true;
+			else if(_pPipes->ALU1forwardAvailable(qitr->m_rt))		//Check ALU
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->ALU2forwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->LS1RegforwardAvailable(qitr->m_rt))	//Check LS
+				qitr->m_rt_rdy = true;
 		}
 	}
 }
@@ -198,19 +219,41 @@ void InstSchedStage::_readyALUQueue()
 		if(! (*qitr).m_rs_rdy)						//Attempt to meet dependency for rs operand
 		{
 			//Search ROB for m_rs
-			if(_ROB->isDependencyMet((*qitr).m_rs))
+			if(_ROB->isDependencyMet(qitr->m_rs))					//Check ROB
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->ALU1forwardAvailable(qitr->m_rs))		//Check ALU
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->ALU2forwardAvailable(qitr->m_rs))
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->FPAforwardAvailable((*qitr).m_rs))		//Check FP
 				(*qitr).m_rs_rdy = true;
+			else if(_pPipes->FPMforwardAvailable((*qitr).m_rs))
+				(*qitr).m_rs_rdy = true;
+			else if(_pPipes->LS1RegforwardAvailable(qitr->m_rs))	//Check LS
+				qitr->m_rs_rdy = true;
 		}
 		if(! (*qitr).m_rt_rdy)
 		{
 			//Search ROB for m_rt
 			if(_ROB->isDependencyMet((*qitr).m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->ALU1forwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->ALU2forwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->FPAforwardAvailable((*qitr).m_rt))		//Check FP
 				(*qitr).m_rt_rdy = true;
+			else if(_pPipes->FPMforwardAvailable((*qitr).m_rt))
+				(*qitr).m_rt_rdy = true;
+			else if(_pPipes->LS1RegforwardAvailable(qitr->m_rt))	//Check LS
+				qitr->m_rt_rdy = true;
 		}
 	}
 }
 
-void InstSchedStage::_readyLSQueue()
+
+
+void InstSchedStage::_readyLSQueue()	//Must perform Memory disambiguation for Store instructions.
 {
 	for(	LSQueueEntryiterator qitr = _LSInstructionQueue.begin();
 			qitr != _LSInstructionQueue.end();
@@ -219,15 +262,46 @@ void InstSchedStage::_readyLSQueue()
 		if(! (*qitr).m_rs_rdy)						//Attempt to meet dependency for rs operand
 		{
 			//Search ROB for m_rs
-			if(_ROB->isDependencyMet((*qitr).m_rs))
-				(*qitr).m_rs_rdy = true;
+			if(_ROB->isDependencyMet(qitr->m_rs))	//Memory disambiguation version
+				{qitr->m_rs_rdy = true;}
+			else if(_pPipes->ALU1forwardAvailable(qitr->m_rs))		//Check ALUS
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->ALU2forwardAvailable(qitr->m_rs))
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->FPAforwardAvailable(qitr->m_rs))		//Check floats
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->FPMforwardAvailable((*qitr).m_rs))
+				qitr->m_rs_rdy = true;
+			else if(_pPipes->LS1RegforwardAvailable(qitr->m_rs))	//Check LS
+				qitr->m_rs_rdy = true;
 		}
 		if(! (*qitr).m_rt_rdy)
 		{
 			//Search ROB for m_rt
-			if(_ROB->isDependencyMet((*qitr).m_rt))
-				(*qitr).m_rt_rdy = true;
+			if(_ROB->isDependencyMet(qitr->m_rt))	//Memory disambguation version
+				{qitr->m_rt_rdy = true;}
+			else if(_pPipes->ALU1forwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->ALU2forwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->FPAforwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->FPMforwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
+			else if(_pPipes->LS1RegforwardAvailable(qitr->m_rt))
+				qitr->m_rt_rdy = true;
 		}
+		if((! qitr->add_rdy) && (qitr->intOp == S || qitr->intOp == L))	//Doing Shengye's logic. Memory system stalls everything
+		{
+			//Search ROB for address dependency (Avoid WAR)
+//TODO ROB VERSION ALWAYS FAILS
+			if(_ROB->isAddressDependencyMet(qitr->extra, qitr->traceLineNo, qitr->intOp))
+				qitr->add_rdy = true;
+			if(_pPipes->LS1AddforwardAvailable(qitr->extra))
+				qitr->add_rdy = true;
+		}
+//		if(qitr->intOp == L)
+//			qitr->add_rdy = true;					//Load instructions do not have to wait for anything other than registers
 	}
 }
 
@@ -296,27 +370,34 @@ void InstSchedStage::_arbitrateQueues()
 }
 
 //R10K arbitrates by the head of the queue, not the age of instruction. _getOldestF
-void InstSchedStage::_getFirstFPMulandAdd(FPQueueEntryiterator* Mulidx, FPQueueEntryiterator* Addidx)
+void InstSchedStage::_getFirstFPMulandAdd(int* Mulidx, int* Addidx)//FPQueueEntryiterator* Mulidx, FPQueueEntryiterator* Addidx)
 {
 #ifdef ARBITRATE_BY_QUEUE_POSITION
 	bool firstMulFound = false;
 	bool firstAddFound = false;
+	int loop = 0;
+	FPQueueEntryiterator qitr = _FPInstructionQueue.begin();
 
-	*Mulidx = _FPInstructionQueue.end();
-	*Addidx = _FPInstructionQueue.end();
+	*Mulidx = 16;//_FPInstructionQueue.end();
+	*Addidx = 16;//_FPInstructionQueue.end();
 
 	//Acts as a FIFO in the respect that the first entry of each type is always chosen first
-	for(	FPQueueEntryiterator qitr = _FPInstructionQueue.begin();
-			qitr != _FPInstructionQueue.end();
-			qitr++																)
+//	for(	FPQueueEntryiterator qitr = _FPInstructionQueue.begin();
+//			qitr != _FPInstructionQueue.end();
+//			qitr++)
+
+	for(loop = 0; loop < 16; loop++)
 	{
+		if(qitr == _FPInstructionQueue.end())
+			break;
+
 		//First multiply logic
 		if(	(!firstMulFound) 	&&		//Do we need the first multiply?
-			((*qitr).intOp == M)&& 		//is this actually a multiply?
+			(qitr->intOp == M)&& 		//is this actually a multiply?
 			(*qitr).m_rs_rdy 	&& 		//Is this operand ready?
 			(*qitr).m_rt_rdy		)	//Is the other operand ready?
 		{
-			*Mulidx = qitr; firstMulFound = true;	//If all above are true, thanks very much this is the first to schedule :)
+			*Mulidx = loop; firstMulFound = true;	//If all above are true, thanks very much this is the first to schedule :)
 		}
 		//First add logic
 		if(	(!firstAddFound)	&&		//Do we need the first add?
@@ -324,118 +405,82 @@ void InstSchedStage::_getFirstFPMulandAdd(FPQueueEntryiterator* Mulidx, FPQueueE
 			(*qitr).m_rs_rdy 	&&
 			(*qitr).m_rt_rdy		)
 		{
-			*Addidx = qitr; firstAddFound = true;	//If all above are true, thanks very much this is the first to schedule :)
+			*Addidx = loop; firstAddFound = true;	//If all above are true, thanks very much this is the first to schedule :)
 		}
+		qitr++;
 	}
 	return;
 #endif
-
-#ifdef ARBITRATE_OLDEST
-//BUGGY DOES NOT CHECK IF THE THINGS ARE READY!
-	FPQueueEntryiterator pOldMul = _FPInstructionQueue.end();
-	FPQueueEntryiterator pOldAdd = _FPInstructionQueue.end();
-	traceline Mulcandidate = 0x7fffffff;
-	traceline Addcandidate = Mulcandidate;
-
-	for(	FPQueueEntryiterator qitr = _FPInstructionQueue.begin();
-			qitr != _FPInstructionQueue.end();
-			qitr++																)
-	{
-		//Oldest multiply logic
-		if((*qitr).intOp == M)
-		{
-			if((*qitr).traceLineNo < Mulcandidate)
-				{pOldMul = qitr; Mulcandidate = (*qitr).traceLineNo;}
-		}
-		//Oldest add logic
-		if((*qitr).intOp == A)
-		{
-			if((*qitr).traceLineNo < Addcandidate)
-				{pOldAdd = qitr; Addcandidate = (*qitr).traceLineNo;}
-		}
-	}
-
-	//Set the oldest instances for the arbitrator to deal with
-	*oldestMul = pOldMul;
-	*oldestAdd = pOldAdd;
-	return;
-#endif
-
-
 
 }
 
-void InstSchedStage::_getFirsttwoALU(ALUQueueEntryiterator* ALU1idx, ALUQueueEntryiterator* ALU2idx)
+void InstSchedStage::_getFirsttwoALU(int* ALU1idx, int* ALU2idx)//ALUQueueEntryiterator* ALU1idx, ALUQueueEntryiterator* ALU2idx)
 {
 #ifdef ARBITRATE_BY_QUEUE_POSITION
 	bool firstALUFound = false;
 	bool secondALUFound = false;
+	int loop;
+	ALUQueueEntryiterator qitr = _ALUInstructionQueue.begin();
 
-	*ALU1idx = _ALUInstructionQueue.end();
-	*ALU2idx = _ALUInstructionQueue.end();
+
+	*ALU1idx = 16;//_ALUInstructionQueue.end();
+	*ALU2idx = 16;//_ALUInstructionQueue.end();
 
 	//Acts as a FIFO in the respect that the first entry of each type is always chosen first
-	for(	ALUQueueEntryiterator qitr = _ALUInstructionQueue.begin();
-			qitr != _ALUInstructionQueue.end();
-			qitr++																)
+//	for(	ALUQueueEntryiterator qitr = _ALUInstructionQueue.begin();
+//			qitr != _ALUInstructionQueue.end();
+//			qitr++																)
+	for(loop = 0; loop < 16; loop++)
 	{
-//TODO: This will not account for instructions that should not be here. That is to say, a branch in here will F things up.
+		if(qitr == _ALUInstructionQueue.end())
+			break;
+
 		if(	(!firstALUFound) &&
 			(*qitr).m_rs_rdy &&
 			(*qitr).m_rt_rdy	)
 		{
-			*ALU1idx = qitr; firstALUFound = true;
+			*ALU1idx = loop; firstALUFound = true;
 		}
 		//First add logic
 		if(	(!secondALUFound)&&
 			(*qitr).m_rs_rdy &&
 			(*qitr).m_rt_rdy	)
 		{
-			*ALU2idx = qitr; secondALUFound = true;
+			*ALU2idx = loop; secondALUFound = true;
 		}
+		qitr++;
 	}
 	return;
 #endif
 
-#ifdef ARBITRATE_OLDEST
-//BUGGY DOES NOT CHECK IF THE THINGS ARE READY!
-	ALUQueueEntryiterator pOldALU1 = _ALUInstructionQueue.end();
-	ALUQueueEntryiterator pOldALU2 = _ALUInstructionQueue.end();
-	traceline oldest1 = 0x7fffffff;
-	traceline oldest2 = oldest1 = 1;
-
-	for(	ALUQueueEntryiterator qitr = _ALUInstructionQueue.begin();
-			qitr != _ALUInstructionQueue.end();
-			qitr++																)
-	{
-		if((*qitr).traceLineNo < oldest1)
-			{pOldALU1 = qitr; oldest1 = (*qitr).traceLineNo;}
-		else if((*qitr).traceLineNo < oldest2)
-			{pOldALU2 = qitr; oldest2 = (*qitr).traceLineNo;}
-	}
-
-	//set the oldest instances for the arbiter to deal with
-	*oldALU1 = pOldALU1;
-	*oldALU2 = pOldALU2;
-#endif
 }
 
 //LS ALWAYS RETURNS THE OLDEST TRACE
-void InstSchedStage::_getFirstLS(LSQueueEntryiterator* LSidx)
+void InstSchedStage::_getFirstLS(int* LSidx)//LSQueueEntryiterator* LSidx)
 {
-	*LSidx = _LSInstructionQueue.end();
+	int loop;
+	*LSidx = 16;//_LSInstructionQueue.end();
 	traceline oldest = 0x7fffffff;
+	LSQueueEntryiterator qitr = _LSInstructionQueue.begin();
 
-	for(	LSQueueEntryiterator qitr = _LSInstructionQueue.begin();
-			qitr != _LSInstructionQueue.end();
-			qitr++																)
+//	for(	LSQueueEntryiterator qitr = _LSInstructionQueue.begin();
+//			qitr != _LSInstructionQueue.end();
+//			qitr++																)
+	for(loop = 0; loop < 16; loop++)
 	{
-		if(	(*qitr).traceLineNo < oldest&&
-			(*qitr).m_rs_rdy			&&
-			(*qitr).m_rt_rdy				)
+		if(qitr == _LSInstructionQueue.end())
+			break;
+//BUG BUG BECAUSE S DOES NOT HAVE A	rt
+		if(	(qitr->traceLineNo < oldest)	&&
+			qitr->m_rs_rdy					&&
+			qitr->m_rt_rdy					&&
+			qitr->add_rdy						)
 		{
-			*LSidx = qitr; oldest = (*qitr).traceLineNo;
+			//*LSidx = qitr;
+			*LSidx = loop;
+			oldest = (*qitr).traceLineNo;
 		}
+		qitr++;
 	}
 	return;
 }

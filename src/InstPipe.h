@@ -30,7 +30,10 @@
 												else															\
 												{																\
 													opcodes << "| 0x" << hex << (*pstg).traceLineNo << " |";	\
-													destrs << "| 0x" << hex << (*pstg).m_rd.machineReg << " |";\
+													if(pstg->intOp & (L | S))									\
+														destrs << "| N/A |";									\
+													else														\
+														destrs << "| 0x" << hex << (*pstg).m_rd.machineReg << " |";	\
 												}																\
 											}
 
@@ -52,11 +55,11 @@ public:
 		_plogger 	= logger;
 		_ROB 		= pROB;
 
-		_FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction());
-		_FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction());
-		_ALU1pipe.push_back(traceinstruction());
-		_ALU2pipe.push_back(traceinstruction());
-		_LS1pipe.push_back(traceinstruction()); _LS1pipe.push_back(traceinstruction());
+		_FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction());
+		_FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction());
+		_ALU1pipe.push_back(traceinstruction()); _ALU1pipe.push_back(traceinstruction());
+		_ALU2pipe.push_back(traceinstruction()); _ALU2pipe.push_back(traceinstruction());
+		_LS1pipe.push_back(traceinstruction()); _LS1pipe.push_back(traceinstruction()); _LS1pipe.push_back(traceinstruction());
 	}
 
 	//Project spec function
@@ -74,14 +77,45 @@ public:
 	//because they reflect the state of the pipeline throughout a cycle
 	bool FPMforwardAvailable(int m_regdependency)
 	{
-		if((_FPMpipe.at(1).m_rd.machineReg == m_regdependency) || (_FPMpipe.at(2).m_rd.machineReg == m_regdependency))
+		if((_FPMpipe[1].m_rd.machineReg == m_regdependency) || (_FPMpipe[2].m_rd.machineReg == m_regdependency) || (_FPMpipe[3].m_rd.machineReg == m_regdependency))
 			return true;
 		return false;
 	}
 
 	bool FPAforwardAvailable(int m_regdependency)
 	{
-		if((_FPApipe.at(1).m_rd.machineReg == m_regdependency) || (_FPApipe.at(2).m_rd.machineReg == m_regdependency))
+		if((_FPApipe[1].m_rd.machineReg == m_regdependency) || (_FPApipe[2].m_rd.machineReg == m_regdependency) || (_FPApipe[3].m_rd.machineReg == m_regdependency))
+			return true;
+		return false;
+	}
+
+	bool ALU1forwardAvailable(int m_regdependency)
+	{
+		if((_ALU1pipe[1].m_rd.machineReg == m_regdependency))
+			return true;
+		return false;
+	}
+
+	bool ALU2forwardAvailable(int m_regdependency)
+	{
+		if((_ALU2pipe[1].m_rd.machineReg == m_regdependency))
+			return true;
+		return false;
+	}
+
+	bool LS1RegforwardAvailable(int m_regdependency)
+	{
+		if((_LS1pipe[2].m_rd.machineReg == m_regdependency))
+			return true;
+		return false;
+	}
+
+	//Just swizzle all the met dependencies
+	bool LS1AddforwardAvailable(int address)
+	{
+	//For load and store
+		//Resolve address dependency
+		if(_LS1pipe[2].extra == address)
 			return true;
 		return false;
 	}

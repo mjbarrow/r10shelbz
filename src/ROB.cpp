@@ -17,30 +17,42 @@ ROB::~ROB() {
 //Blit the appropriate widget
 void ROB::risingEdge()
 {
-	vector<robEntry>::iterator i;
-	int loop;
+/*	vector<robEntry>::iterator i;
+	vector<traceinstruction>::iterator loop;
+//	int loop = 0;
 
 	//Note all in-flight instructions that have begun to execute
-	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
+	for(loop = _executionPorts.begin(); loop < _executionPorts.end(); loop++)//(loop = 0; loop < RETIREPORTCOUNT; loop++)
 	{
-		if(_executionPorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
+//TODO	CHANGED TO INF PORTS FOR THE SCHED STAGE	if(_executionPorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
+		if(loop->intOp != BADOpcode)
 		{
 			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
 			{
-				if ((*i).m_rd.Key == _executionPorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+//TODO				if (i->m_rd.Key == _executionPorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+				if(i->m_rd.Key == loop->m_rd.Key)
 				{
-					(*i).didExecute = true;							//Retire that instruction in the ROB
+					i->didExecute = true;							//Retire that instruction in the ROB
+				}
+				//Certain instructions (Store and branch) do not have a destination register and so may retire regardless of key
+				if(i->intOp & (S | B))
+				{
+					i->didExecute = true;
 				}
 			}														//Now the scheduler will know another register is ready
 		}
-		_executionPorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
-													//If the execution pipes don't do anything next cycle
+//TODO		_executionPorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
+		*loop = traceinstruction();						//Nuke the port value so we don't pick up junk
+														//If the execution pipes don't do anything next cycle
 	}
 
+	_executionPorts = vector<traceinstruction>();		//Nuke the whole vector. for safty
+*/
 	_myCycleCounter++;			//This is used so the ROB displays the cycle a trace line entered it.
 
 	//Commit old instructions. They will go away forever to memory.
-	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
+//	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
+
 	//Add the new instructions into the ROB. They will live until pipes commit them
 	_issuedInstsToROB();
 }
@@ -60,16 +72,30 @@ void ROB::fallingEdge()
 		{
 			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
 			{
-				if ((*i).m_rd.Key == _retirePorts[loop].m_rd.Key)	//If we find the trace instruction at the input port
+				//For store. this instruction has no desination register and may be retired
+				//by traceline number. TODO this is debug code
+				if(i->traceLineNo == _retirePorts[loop].traceLineNo && (i->intOp != BADOpcode))
+				{
+					i->retired = true;
+				}
+
+				/*SHOULD retire by register map key, but this does not work
+				 * Since some instructions have no destination register.
+				 * //For load. this instruction can be matched
+				if ((i->m_rd.Key == _retirePorts[loop].m_rd.Key)
+						&& (_retirePorts[loop].m_rd.Key != BADOpcode))	//If we find the trace instruction at the input port
 				{
 					(*i).retired = true;							//Retire that instruction in the ROB
-				}
+				}*/
 			}														//Now the scheduler will know another register is ready
 		}
 		_retirePorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
 													//If the execution pipes don't do anything next cycle
 	}
 		//return false;
+//TODO DEBUG SHOULD COMMIT ON FALLING EDGE AFTER SCHEDULE
+	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
+	//Add the new instructions into the ROB. They will live until pipes commit them
 
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
@@ -139,19 +165,50 @@ void ROB::_issuedInstsToROB()//addEntry(traceinstruction value)
 //The dependency is always met unless this register is the target of an in-flight instruction
 bool ROB::isDependencyMet(unsigned short machinereg)
 {
+	if(machinereg == BADOperand)		//The Load instruction only has one dependency
+		return true;					//The other register is bad and does not need to be checked.
 
 	for(	std::vector<robEntry>::iterator entry = ROBbuffer.begin();
 			entry != ROBbuffer.end();
-			entry++														)
+			entry++			)
 	{
+		if(entry->m_rd.machineReg == machinereg)	//This is the ROB entry you are looking for
+			if(entry->retired == false)				//The corresponding instruction has not completed
+				return false;						//Dependency has therefore been resolved
+	}
+	/*Does not appear to work{
 		if((*entry).m_rd.machineReg == machinereg)
 			if(! (*entry).retired)
 				return false;
-//TODO: Need some kind of mechanism for handling in flight forwarded instructions
+	}*/
+
+	//return tr
+	return true;
+}
+
+//Call this only for a store operation
+bool ROB::isAddressDependencyMet(int address, int traceNo, int instruction)
+{
+	if(instruction == BADOpcode)
+		return true;
+
+	for(	std::vector<robEntry>::iterator entry = ROBbuffer.begin();		//We will check all in-flight instructions
+			entry != ROBbuffer.end();										//To see if there could be a conflict
+			entry++														)
+	{
+
+		if( 	((entry->intOp ==  L ) || (entry->intOp == S)) &&	//Shengye assumption. To avoid failiure caused by exceptions
+																	//Never execute a memory op unless the previous one completed
+				/*(entry->extra == dependent->extra) &&*/				//If it uses the same address, there is still potential
+				(entry->traceLineNo < traceNo) &&	//If it is an older instruction than this, there is still potential
+				(entry->retired == false)								//We must wait until this Load executes or we cause WAR
+			)
+			return false;
 	}
 
 	return true;
 }
+
 
 //TODO: BUG BUG!!! CAN COMMIT OUT OF ORDER AND DOES NOT SEEM TO ACCOUNT FOR A CIRCULAR BUFFER!
 
@@ -178,14 +235,20 @@ void ROB::_commitTailInstructions(int count)
 		{
 			//If this "inflight" instruction is not executing and it requires use of the commit candidate dest reg
 			//We cannot commit yet
-			if((!(*inflight).didExecute) && ((*inflight).m_rs == commitme.m_rd.machineReg))
-				return;
+/*FULLY DISCARD THIS CHECK, ASSUME SCHEDULER HOLDS COPIES OF CALCULATED REGISTERS			if(		/*(!inflight->didExecute) &&*/
+/*					(inflight->m_rs == commitme.m_rd.machineReg) &&
+					(inflight->rs != BADOpcode)							)	//Discard this check if the rd rs register is not used
+				return;*/
 			//If this "inflight" instruction is not retired and it requires use of the commit candidate dest reg
 			//We cannot commit yet
-			if((!(*inflight).didExecute) && ((*inflight).m_rt == commitme.m_rd.machineReg))
+			if(		/*(!inflight->didExecute) && Not valid. you do not have to wait for didExecute*/
+					(!inflight->retired) &&
+					(inflight->m_rt == commitme.m_rd.machineReg) &&
+					(inflight->rt != BADOpcode)							)	//Discard this check if the rt register is not used
 				return;
 			//Also cannot commit if an older trace than commitme has not been committed yet
-			if(((*inflight).traceLineNo < commitme.traceLineNo ) && ((*inflight).traceLineNo != BADTraceNo))
+			if(		(inflight->traceLineNo < commitme.traceLineNo ) &&
+					(inflight->traceLineNo != BADTraceNo))					//Discard this check if the instruction has no trace line (weird)
 				return;
 		}
 

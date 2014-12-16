@@ -19,7 +19,7 @@
 #include "TraceOutputLogger.h"
 
 //This is used for debug, so is much more verbose than what appears in the UI version
-#define PrintQueueEntry(i,x) 				cerr << "<|| #" << i;	\
+/*#define PrintQueueEntry(i,x) 				cerr << "<|| #" << i;	\
 											cerr << ":\t|";			\
 											cerr << "tr# " << (*x).traceLineNo;	\
 											cerr << "\t| ";						\
@@ -34,7 +34,7 @@
 											cerr << "rd: " <<hex<<"0x"<< (*x).rd << " <- rs:" <<hex<<"0x"<< (*x).rs << " "+(*x).strOp+" rt: " <<hex<<"0x"<< (*x).rt;\
 											cerr << "\t|";			\
 											cerr <<	"m_rd: " <<hex<<"0x"<< (*x).m_rd.machineReg << " <- m_rs:" <<hex<<"0x"<< (*x).m_rs << " "+(*x).strOp+" m_rt: " <<hex<<"0x"<< (*x).m_rt;\
-											cerr << "\t||>," << endl;
+											cerr << "\t||>," << endl;*/
 
 //Version used for UI
 #define PrintQueueSummary(s,x)		s << "| ins#:" << x.traceLineNo;	\
@@ -57,9 +57,10 @@ class FPQueueEntry: public traceinstruction
 public:
 	bool m_rt_rdy;
 	bool m_rs_rdy;
+	bool add_rdy;		//Only used by the store instruction for mem disambiguation
 
-	FPQueueEntry(){m_rt_rdy = m_rs_rdy = false;}
-	FPQueueEntry(traceinstruction* t) : traceinstruction(*t) {m_rt_rdy = m_rs_rdy = false;}
+	FPQueueEntry(){m_rt_rdy = m_rs_rdy = add_rdy = false;}
+	FPQueueEntry(traceinstruction* t) : traceinstruction(*t) {m_rt_rdy = m_rs_rdy = add_rdy = false;}
 
 	virtual~FPQueueEntry(){}
 
@@ -76,17 +77,17 @@ class FPQueue: public vector<FPQueueEntry>
 public:
 	FPQueue(){}
 
-	void print()
+/*	void print()
 	{
 		int i = 0;
 		cerr << "[" << endl;
 		for(FPQueueEntryiterator it = this->begin(); it != this->end(); it++)
 		{
-			PrintQueueEntry(i,it);
+//			PrintQueueEntry(i,it);
 			i++;
 		}
 		cerr << "]" << endl;
-	}
+	}*/
 
 	virtual~FPQueue(){}
 };
@@ -98,14 +99,27 @@ typedef FPQueue LSQueue;
 class arbitrationStruct
 {
 public:
-	arbitrationStruct(){}
+	arbitrationStruct()
+	{
+		scheduledFPM = 0;
+		scheduledFPA = 0;
+		scheduledALU1 = 0;
+		scheduledALU2 = 0;
+		scheduledLS1 = 0;
+	}
+
 	virtual~arbitrationStruct(){}
 
-	FPQueueEntryiterator 	scheduledFPM;
-	FPQueueEntryiterator 	scheduledFPA;
-	ALUQueueEntryiterator 	scheduledALU1;
-	ALUQueueEntryiterator 	scheduledALU2;
-	LSQueueEntryiterator 	scheduledLS1;
+//	FPQueueEntryiterator 	scheduledFPM;
+//	FPQueueEntryiterator 	scheduledFPA;
+//	ALUQueueEntryiterator 	scheduledALU1;
+//	ALUQueueEntryiterator 	scheduledALU2;
+//	LSQueueEntryiterator 	scheduledLS1;
+	int 	scheduledFPM;
+	int 	scheduledFPA;
+	int 	scheduledALU1;
+	int 	scheduledALU2;
+	int 	scheduledLS1;
 //Branch does not go into the pipes, it is just verified	int oldestBtrace;
 };
 
@@ -120,11 +134,11 @@ public:
 		_plogger								= logger;
 		_ROB 									= ROB;
 		_pPipes 								= pPipes;
-		_scheduledInstructions.scheduledFPM 	= _FPInstructionQueue.end();
-		_scheduledInstructions.scheduledFPA 	= _FPInstructionQueue.end();
-		_scheduledInstructions.scheduledALU1 	= _ALUInstructionQueue.end();
-		_scheduledInstructions.scheduledALU2 	= _ALUInstructionQueue.end();
-		_scheduledInstructions.scheduledLS1 	= _LSInstructionQueue.end();
+//		_scheduledInstructions.scheduledFPM 	= _FPInstructionQueue.end();
+//		_scheduledInstructions.scheduledFPA 	= _FPInstructionQueue.end();
+//		_scheduledInstructions.scheduledALU1 	= _ALUInstructionQueue.end();
+//		_scheduledInstructions.scheduledALU2 	= _ALUInstructionQueue.end();
+//		_scheduledInstructions.scheduledLS1 	= _LSInstructionQueue.end();
 		_DFPQidx 								= 0;
 		_DALUQidx 								= 0;
 		_DLSQidx								= 0;
@@ -145,7 +159,7 @@ public:
 	bool pushLSInstruction(traceinstruction i);
 
 
-	void printInstructionQueues()
+	/*void printInstructionQueues()
 	{
 		cerr << "\t\t\t\t\t= Floating Point Queue status: =" << endl;
 		_FPInstructionQueue.print();
@@ -156,9 +170,9 @@ public:
 		cerr << "\t\t\t\t\t\t= LS Queue status: =" << endl;
 		_LSInstructionQueue.print();
 		cerr << "\t\t\t\t\t\t====================" << endl;
-	}
+	}*/
 
-	void printArbitrationStruct()
+/*	void printArbitrationStruct()
 	{
 		cerr << "\t\t\t\t\t= Arbitration struct status: =" << endl;
 
@@ -183,7 +197,7 @@ public:
 		else
 			{cerr << "scheduled LS1:\t," << 4  << "<|| NULL ||>" << endl;}
 		cerr << "\t\t\t\t\t================================" << endl;
-	}
+	}*/
 
 	virtual ~InstSchedStage(){}
 
@@ -219,9 +233,9 @@ private:
 	void _readyLSQueue();
 	void _resolveSchedDependencies()			{_readyFPQueue();_readyALUQueue();_readyLSQueue();}
 	//Schedule instructions	(combinational logic)
-	void _getFirstFPMulandAdd(FPQueueEntryiterator* oldestMul, FPQueueEntryiterator* oldestAdd);
-	void _getFirsttwoALU(FPQueueEntryiterator* oldALU1, FPQueueEntryiterator* oldALU2);
-	void _getFirstLS(FPQueueEntryiterator* oldestLS);
+	void _getFirstFPMulandAdd(int* oldestMul, int* oldestAdd);//FPQueueEntryiterator* oldestMul, FPQueueEntryiterator* oldestAdd);
+	void _getFirsttwoALU(int* oldALU1, int* oldALU2);//FPQueueEntryiterator* oldALU1, FPQueueEntryiterator* oldALU2);
+	void _getFirstLS(int* oldestLS);//FPQueueEntryiterator* oldestLS);
 	void _arbitrateQueues();
 
 	//UI stuff

@@ -74,83 +74,40 @@ namespace R10k {
 class TraceOutputLogger {
 public:
 	TraceOutputLogger(	UserInterface* ui,
-						char* LogFile)
+						const char* LogFile)
 	{
 		_ui = ui;
 		_cycle = 0;
+		_pipetrace.open(LogFile,std::ifstream::out);
 	}
 
 	virtual ~TraceOutputLogger(){}
 
-	void logIFTrace(int traceline)
-	{
-		stageToLogStrings("F",traceline);
-//		_modifiedF.push_back(traceline);		//Let the falling edge know not to add a " - " blank space to this trace
-		/*{
-			int i;
+	void logIFTrace(int traceline){stageToLogStrings(" F ",traceline);}
 
-			logindexmapitr index =_outlogindexmap.find(traceline);
-			if(index != _outlogindexmap.end())
-			{
-				_pipelinediagram[index->second] += "F";
-			}
-			else
-			{
-				ostringstream ss;
-				string newtrace = " ";
-				ss << traceline;
-				newtrace += ss.str();
-				newtrace += " ";
+	void logIDTrace(int traceline){stageToLogStrings(" D ",traceline);}		//Log a D in the pipeline race for this pipeline trace
 
-				for(i = 0; i < _cycle; i++)
-				{
-					newtrace += " - ";
-				}
-				newtrace += " F ";
-				//create a mapping between this traceline and this outlog vector entry
-				_outlogindexmap[traceline] = _pipelinediagram.size();
-				//Add the new
-				_pipelinediagram.push_back(newtrace);
+	void logISTrace(int traceline){stageToLogStrings(" S ",traceline);}
 
-			}
-		}*/
-	}
-
-	void logIDTrace(int traceline)
-	{
-		stageToLogStrings(" D ",traceline);		//Log a D in the pipeline race for this pipeline trace
-//		_modifiedD.push_back(traceline);		//Let the falling edge know not to add a " - " blank space to this trace
-	}
-
-	void logISTrace(int traceline)
-	{
-		stageToLogStrings(" S ",traceline);
-//		_modifiedS.push_back(traceline);		//Let the falling edge know not to add a " - " blank space to this trace
-	}
-
-	void logEXTrace(int traceline)
-	{
-		stageToLogStrings(" E ",traceline);
-//		_modifiedE.push_back(traceline);		//Let the falling edge know not to add a " - " blank space to this trace
-	}
+	void logEXTrace(int traceline){stageToLogStrings(" E ",traceline);}
 
 //	void logRTTrace(int traceline);
 
 	void logCMTrace(int traceline)
 	{
+		logindexmapitr print;
 		stageToLogStrings(" C ",traceline)
-//		_modifiedC.push_back(traceline);		//Let the falling edge know not to add a " - " blank space to this trace
 		//TODO LOG TO FILE
-
+		print =_outlogindexmap.find(traceline);
+				/*if(index != _outlogindexmap.end())					\
+				{													\
+					_pipelinediagram[index->second] += pstage;		\
+				stageToLogStrings(" C ",traceline)*/
 		//TODO DELETE MAPPINGS
 		//TODO DELETE STRING
 	}	//DELETE MAPPINGS HERE
 
-	void risingEdge()
-	{
-		//Increment cycle counter
-		_cycle++;
-	}
+	void risingEdge(){_cycle++;}//Increment cycle counter
 
 	//Used to write out the current pipeline status
 	//Has to be done after the falling edge call of the ROB, because this reflects the commit and retire stages of instructions.
@@ -158,11 +115,14 @@ public:
 
 private:
 	int _cycle;
-	map<int,int>	_outlogindexmap;
-	vector<pipetrace> _pipelinediagram;
+	map<int,int>		_outlogindexmap;
+	vector<pipetrace> 	_pipelinediagram;
 
 //	vector<string> _outlog;				//TODO not being used yet
 	UserInterface* _ui;
+
+	//string*		_outfile;				//To do with outputting a pipeline trace
+	ifstream	_pipetrace;
 
 };
 

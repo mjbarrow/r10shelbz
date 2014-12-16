@@ -14,7 +14,6 @@ void InstFetchStage::risingEdge()
 {
 	vector<string> stringInstList;
 	unsigned int i;
-//TODO Display the content of the instruction stream on the UI
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
 	for(i = 0; i < instructionstream.size(); i++)
@@ -27,11 +26,8 @@ void InstFetchStage::risingEdge()
 	//trigger the blit function so that the screen output is refreshed of the ROB content
 	_ui->blitInstructionList(&stringInstList);//blitROBList(&stringROB);
 
-
-//Clear all of the instruction stream for next time
+	//Clear all of the instruction stream for next time
 	instructionstream = vector<traceinstruction>();	//CLEAN UP THE INSTRUCTION STREAM
-
-
 }
 
 void InstFetchStage::calc()

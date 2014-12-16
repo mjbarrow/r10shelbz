@@ -88,6 +88,9 @@ public:
 	bool isFull();
 	void printRobEntry(unsigned int entry)	{if(ROBbuffer.size() > entry){printBufferLine(entry);}}
 	void printRob()							{unsigned int i; for(i = 0; i < ROBbuffer.size(); i++){printBufferLine(i);}}
+//TODO debug thing called by the scheduler after it is done with the system bus
+	void endBusCycle();
+
 
 //TODO: the instantiation cycle should be fixed up when a clock is added
 	void addEntry(traceinstruction value)
@@ -101,11 +104,18 @@ public:
 	void retireEntry(	int retireport,													//Ex pipes call this during calc.
 						traceinstruction retire){_retirePorts[retireport] = retire;}	//To ensure forwarding, it is acted on during fallingEdge()
 
-	void entryExecuted(  int executeport,
-						 traceinstruction executing){_executionPorts[executeport] = executing;}
+//DO NOT NEED TO WAIT UNTIL INSTRUCTION EXECUTED, JUST WAIT UNTIL IT IS SCHEDULED (QUEUES HOLD OPERANDS)
+//	void entryExecuted(  int executeport,
+//						 traceinstruction executing){_executionPorts[executeport] = executing;}
+//REmove this feedback path	void entryScheduled(  int scheduleport,
+//						 traceinstruction scheduled){_executionPorts[scheduleport] = scheduled;}
 
-	bool isDependencyMet(unsigned short machinereg);	//Used by scheduler to check dependencies
-														//Must be called after "retireEntry()"
+
+	bool isDependencyMet(unsigned short machinereg);			//Used by scheduler to check dependencies
+																//Must be called after "retireEntry()"
+	bool isAddressDependencyMet(int address, int traceNo, int instruction);		//If this address exists in the ROB, belongs to a store and
+																//That store did not start going + is older, stall.
+	//bool isDependencyMet(traceinstruction* memoryinstruction);	//As above but for L/S instructions
 
 	virtual ~ROB();
 
@@ -124,9 +134,10 @@ private:
 	traceinstruction _issuedInsts[ISSUEWAYCOUNT];
 
 	//used in commit timing resolution
-	traceinstruction _executionPorts[RETIREPORTCOUNT];
+//	traceinstruction _executionPorts[RETIREPORTCOUNT];//TODO rename this to scheduled ports
+//Remove this feedback path	vector<traceinstruction>_executionPorts;
 
-	std::vector<robEntry>ROBbuffer;
+	vector<robEntry>ROBbuffer;
 
 	void _issuedInstsToROB();				//Add the _issuedInsts to ROB on the clock risingEdge()
 	bool _retireEntry(unsigned int entryindex){if((entryindex < ROBbuffer.size()) && (entryindex <= ROBSize))ROBbuffer[entryindex].retired = true; return true;}
@@ -142,6 +153,12 @@ private:
 		ostringstream os;
 		robEntry line  = ROBbuffer[entry];
 
+		int rt 		= line.rt;		//Fix up swizzled registers during display
+		int m_rt 	= line.m_rt;
+
+		if(line.intOp == L)		//Load instruction internally swizzles rt and rd for consistency with the trace format
+			{rt = line.rd;	m_rt = line.m_rt;}
+
 		if(((unsigned int)entry == head) && ((unsigned int)entry == tail))
 			os << "hd+tl->\t|| #";
 		else if((unsigned int)entry == tail)
@@ -155,10 +172,15 @@ private:
 			 << " DecCy# "	<< line.instantiationcycle
 			 << " rtrd? "	<< line.retired
 			 << " Exd? " 	<< line.didExecute
-			 << "  | "
-			 << " isa reg "	 <<hex<<"0x"<< line.rd << " <- isa reg: " <<hex<<"0x"<< line.rs << " "+line.strOp+" isa reg: " <<hex<<"0x"<< line.rt
+			 << "  | ";
+		if(line.intOp != S)
+			os << " isa reg " <<hex<<"0x"<< line.rd;
+		else
+			os << " address " <<hex<<"0x"<< line.extra;
+
+		os	 << " <- isa reg: " <<hex<<"0x"<< line.rs << " "+line.strOp+" isa reg: " <<hex<<"0x"<< rt
 			 << "\t|\t"
-			 << " m reg "	 <<hex<<"0x"<< line.m_rd.machineReg << " <- m reg: " <<hex<<"0x"<< line.m_rs << " "+line.strOp+" m reg: " <<hex<<"0x"<< line.m_rt
+			 << " m reg "	 <<hex<<"0x"<< line.m_rd.machineReg << " <- m reg: " <<hex<<"0x"<< line.m_rs << " "+line.strOp+" m reg: " <<hex<<"0x"<< m_rt
 			 << "\t||";
 
 		robEntryString = os.str();
