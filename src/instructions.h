@@ -5,7 +5,7 @@
  *      Author: king
  */
 
-#include "utils.h"
+//#include "utils.h"
 
 #ifndef INSTRUCTIONS_H_
 #define INSTRUCTIONS_H_
@@ -86,43 +86,6 @@ using namespace std;
 
 namespace R10k {
 
-typedef int traceline;
-
-class instruction {
-public:
-	instruction();
-	instruction(string str_instruction);
-	string Opcode_name;
-	int Opcode_val;
-	string Operand1_name;
-	int Operand1_val;
-	string Operand2_name;
-	int Operand2_val;
-	string Operand3_name;
-	int Operand3_val;
-
-	virtual ~instruction();
-};
-
-class traceinstruction{
-	public:
-	traceinstruction();
-	traceinstruction(string traceline, int tracelineNo);
-	string strOp;
-	traceline traceLineNo;
-//Original trace register numbers (ISA Regs)
-	int intOp;
-	int rs;
-	int rt;
-	int rd;
-	int extra;
-//Re-mapped trace variables used by the scheduler and ROB during commit (I guess)
-	int m_rs;
-	int m_rt;
-	RegMapKey m_rd;	//Special. Provides a reverse mapping key that is used to clear map table entries.
-
-	virtual ~traceinstruction();
-};
 
 } /* namespace R10k */
 

@@ -16,6 +16,7 @@
 #include <map>
 #include "userinterface.h"
 #include "TraceOutputLogger.h"
+//#include "BranchResolver.h"
 
 using namespace logic;
 
@@ -26,25 +27,27 @@ class InstDecodeStage {
 public:
 
 	/*Initialize FreeRegList where all renameReg's are free*/
-	InstDecodeStage(	UserInterface* 	ui,
-						TraceOutputLogger* logger,
-						InstSchedStage* pScheduler,
-						ROB* 			pROB,
-						freeRegList* 	pFreeRegList,
-						regmaptable* 	pRegMapTable,
-						ISAreginstance* pMaxISAregmap)
+	InstDecodeStage(	UserInterface* 			ui,
+						TraceOutputLogger* 		logger,
+						InstSchedStage* 		pScheduler,
+						ROB* 					pROB,
+	//					BranchResolver*			pBrUnit,
+						vector<freeRegList>* 	pFreeRegList,
+						vector<regmaptable>* 	pRegMapTable,
+						vector<ISAreginstance>* pMaxISAregmap)
 	{
 		int i;
 		_ui 				= ui;
-		_plogger				= logger;
+		_plogger			= logger;
 		_pScheduler 		= pScheduler;
 		_pROB 				= pROB;
 		_FreeRegList 		= pFreeRegList;
 		_RegMapTable 		= pRegMapTable;
 		_ISAInstanceRegmap 	= pMaxISAregmap;		//this should wrap around, so the ROB may not be larger than 2^16
 
-		for(i = 0; i< renameRegCount; i++){_FreeRegList->push(i);}						//Initialize free reg list
-		for(i = 0; i< ISARegCount; i++){_ISAInstanceRegmap->insert(ISAreginstancepair(i,0));} //Initialize reginstance to 0 for all ISAReg's
+
+		for(i = 0; i< renameRegCount; i++){(*_FreeRegList)[0].push(i);}						//Initialize free reg list
+		for(i = 0; i< ISARegCount; i++){(*_ISAInstanceRegmap)[0].insert(ISAreginstancepair(i,0));} //Initialize reginstance to 0 for all ISAReg's
 
 		for(i = 0; i<4; i++)
 		{
@@ -130,14 +133,17 @@ private:
 	//Instruction queues
 	InstSchedStage* _pScheduler;
 
+	//Class that can push all register files to the stack if a branch is detected
+//	BranchResolver*	_BrUnit;
+
 	//machine registers in the ActiveList that are available to be assigned to ISA regs for working.
-	freeRegList* 	_FreeRegList;
+	vector<freeRegList>* 	_FreeRegList;
 
 	//Instruction decode register renaming structures
-	regmaptable* 	_RegMapTable;
+	vector<regmaptable>* 	_RegMapTable;
 
 	//BastardChild
-	ISAreginstance* _ISAInstanceRegmap;
+	vector<ISAreginstance>* _ISAInstanceRegmap;
 
 	//D and Q variable
 	//Clock related stuff D tracelines (these are the input side of the register)

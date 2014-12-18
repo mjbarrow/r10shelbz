@@ -91,6 +91,8 @@ public:
 
 	void logEXTrace(int traceline){stageToLogStrings(" E ",traceline);}
 
+	void logMPTrace(int traceline){stageToLogStrings(" M ",traceline);}		//log a mispredict.
+
 //	void logRTTrace(int traceline);
 
 	void logCMTrace(int traceline)

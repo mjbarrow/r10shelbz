@@ -6,6 +6,7 @@
 #include <string>
 #include <queue>
 #include <map>
+#include "instructions.h"
 #include "stdio.h"	//for SHOW_DEFINE. useful enough that I'll do this.
 
 using namespace std;
@@ -48,6 +49,12 @@ using namespace std;
 #define instOp2 3
 #define instOp3	4
 //end inst reg type
+
+//To do with branch predict resolution
+#define BRANCHBUFCOUNT	4
+
+//To do with queue size
+#define SCHEDQUEUESIZE	16
 
 //Set Behaviour of pipe stages
 //NOT DEBUGED #define ARBITRATE_BY_OLDEST
@@ -151,6 +158,7 @@ public:
 
 	virtual~regmaptable(){}
 };
+//typedef map<int,int> regmaptable;
 
 
 typedef pair<int, int> regmappair;
@@ -159,6 +167,95 @@ typedef pair<int, int> regmappair;
 //Latest instance of an ISA reg that has been mapped
 typedef map<int, int> ISAreginstance;
 typedef pair<int, int>ISAreginstancepair;
+
+//Pulled out of instructions.h
+
+typedef int traceline;
+
+class instruction {
+public:
+	instruction();
+	instruction(string str_instruction);
+	string Opcode_name;
+	int Opcode_val;
+	string Operand1_name;
+	int Operand1_val;
+	string Operand2_name;
+	int Operand2_val;
+	string Operand3_name;
+	int Operand3_val;
+
+	virtual ~instruction();
+};
+
+class traceinstruction{
+	public:
+	traceinstruction();
+	traceinstruction(string traceline, int tracelineNo);
+	string strOp;
+	traceline traceLineNo;
+//Original trace register numbers (ISA Regs)
+	int intOp;
+	int rs;
+	int rt;
+	int rd;
+	int extra;
+//Re-mapped trace variables used by the scheduler and ROB during commit (I guess)
+	int m_rs;
+	int m_rt;
+	RegMapKey m_rd;	//Special. Provides a reverse mapping key that is used to clear map table entries.
+
+	virtual ~traceinstruction();
+};
+
+
+//Pulled out of InstSched.h
+
+class FPQueueEntry: public traceinstruction
+{
+public:
+	bool m_rt_rdy;
+	bool m_rs_rdy;
+	bool add_rdy;		//Only used by the store instruction for mem disambiguation
+
+	FPQueueEntry(){m_rt_rdy = m_rs_rdy = add_rdy = false;}
+	FPQueueEntry(traceinstruction* t) : traceinstruction(*t) {m_rt_rdy = m_rs_rdy = add_rdy = false;}
+
+	virtual~FPQueueEntry(){}
+
+};
+typedef FPQueueEntry ALUQueueEntry;
+typedef FPQueueEntry LSQueueEntry;
+
+typedef vector<FPQueueEntry>::iterator FPQueueEntryiterator;	//Used when printing out the regmaptable
+typedef FPQueueEntryiterator ALUQueueEntryiterator;
+typedef FPQueueEntryiterator LSQueueEntryiterator;
+
+/*class FPQueue: public vector<FPQueueEntry>
+{
+public:
+	FPQueue(){}
+*/
+/*	void print()
+	{
+		int i = 0;
+		cerr << "[" << endl;
+		for(FPQueueEntryiterator it = this->begin(); it != this->end(); it++)
+		{
+//			PrintQueueEntry(i,it);
+			i++;
+		}
+		cerr << "]" << endl;
+	}*/
+/*
+	virtual~FPQueue(){}
+};*/
+
+typedef vector<FPQueueEntry> FPQueue;
+typedef FPQueue ALUQueue;
+typedef FPQueue LSQueue;
+
+//End pulled out of InstSched.h
 
 
 //End hardware to do with the register maps

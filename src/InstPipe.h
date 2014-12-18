@@ -5,8 +5,6 @@
  *      Author: king
  */
 
-#ifndef INSTPIPE_H_
-#define INSTPIPE_H_
 
 #include <vector>
 #include "utils.h"
@@ -14,6 +12,13 @@
 #include "ROB.h"
 #include "userinterface.h"
 #include "TraceOutputLogger.h"
+
+#include "BranchResolver.h"
+
+#ifndef INSTPIPE_H_
+#define INSTPIPE_H_
+
+
 
 //=====================================================================================================
 //									HELPER MACROS
@@ -49,17 +54,32 @@ public:
 
 	InstPipeStage(	UserInterface* 		ui,
 					TraceOutputLogger*	logger,
-					ROB* 				pROB	)//Initialize blank pipe stages
+					ROB* 				pROB,
+					BranchResolver*		pBRUnit,
+					vector< vector<traceinstruction> >* FPMpipe,
+					vector< vector<traceinstruction> >* FPApipe,
+					vector< vector<traceinstruction> >* ALU1pipe,
+					vector< vector<traceinstruction> >* ALU2pipe,
+					vector< vector<traceinstruction> >* LS1pipe	)//Initialize blank pipe stages
 	{
 		_ui 		= ui;
 		_plogger 	= logger;
 		_ROB 		= pROB;
+		_pBRUnit	= pBRUnit;
 
-		_FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction()); _FPMpipe.push_back(traceinstruction());
-		_FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction()); _FPApipe.push_back(traceinstruction());
-		_ALU1pipe.push_back(traceinstruction()); _ALU1pipe.push_back(traceinstruction());
-		_ALU2pipe.push_back(traceinstruction()); _ALU2pipe.push_back(traceinstruction());
-		_LS1pipe.push_back(traceinstruction()); _LS1pipe.push_back(traceinstruction()); _LS1pipe.push_back(traceinstruction());
+		_FPMpipe 	= FPMpipe;
+		_FPApipe 	= FPApipe;
+		_ALU1pipe 	= ALU1pipe;
+		_ALU2pipe 	= ALU2pipe;
+		_LS1pipe 	= LS1pipe;
+
+		_didMispredict = traceinstruction();
+
+		((*_FPMpipe)[0]).push_back(traceinstruction()); ((*_FPMpipe)[0]).push_back(traceinstruction()); ((*_FPMpipe)[0]).push_back(traceinstruction()); ((*_FPMpipe)[0]).push_back(traceinstruction());
+		((*_FPApipe)[0]).push_back(traceinstruction()); ((*_FPApipe)[0]).push_back(traceinstruction()); ((*_FPApipe)[0]).push_back(traceinstruction()); ((*_FPApipe)[0]).push_back(traceinstruction());
+		((*_ALU1pipe)[0]).push_back(traceinstruction()); ((*_ALU1pipe)[0]).push_back(traceinstruction());
+		((*_ALU2pipe)[0]).push_back(traceinstruction()); ((*_ALU2pipe)[0]).push_back(traceinstruction());
+		((*_LS1pipe)[0]).push_back(traceinstruction()); ((*_LS1pipe)[0]).push_back(traceinstruction()); ((*_LS1pipe)[0]).push_back(traceinstruction());
 	}
 
 	//Project spec function
@@ -72,40 +92,41 @@ public:
 	void ALUBinPort(traceinstruction ALUB)	{_DALU2 = ALUB;	}	//as above
 	void LSAinPort(traceinstruction LSA)	{_DLS1 	= LSA;	}	//as above
 
-//TODO: DEBUG AND Make sure these feedback paths work
+	traceinstruction didBranchMispredict()	{return _didMispredict;}	//Used by the falling edge of the scheduler to purge scheduled instructions.
+
 	//These ForwardAV functions are acceptable as being accessible during Calc,
 	//because they reflect the state of the pipeline throughout a cycle
 	bool FPMforwardAvailable(int m_regdependency)
 	{
-		if((_FPMpipe[1].m_rd.machineReg == m_regdependency) || (_FPMpipe[2].m_rd.machineReg == m_regdependency) || (_FPMpipe[3].m_rd.machineReg == m_regdependency))
+		if((((*_FPMpipe)[0])[1].m_rd.machineReg == m_regdependency) || (((*_FPMpipe)[0])[2].m_rd.machineReg == m_regdependency) || (((*_FPMpipe)[0])[3].m_rd.machineReg == m_regdependency))
 			return true;
 		return false;
 	}
 
 	bool FPAforwardAvailable(int m_regdependency)
 	{
-		if((_FPApipe[1].m_rd.machineReg == m_regdependency) || (_FPApipe[2].m_rd.machineReg == m_regdependency) || (_FPApipe[3].m_rd.machineReg == m_regdependency))
+		if((((*_FPApipe)[0])[1].m_rd.machineReg == m_regdependency) || (((*_FPApipe)[0])[2].m_rd.machineReg == m_regdependency) || (((*_FPApipe)[0])[3].m_rd.machineReg == m_regdependency))
 			return true;
 		return false;
 	}
 
 	bool ALU1forwardAvailable(int m_regdependency)
 	{
-		if((_ALU1pipe[1].m_rd.machineReg == m_regdependency))
+		if((((*_ALU1pipe)[0])[1].m_rd.machineReg == m_regdependency))
 			return true;
 		return false;
 	}
 
 	bool ALU2forwardAvailable(int m_regdependency)
 	{
-		if((_ALU2pipe[1].m_rd.machineReg == m_regdependency))
+		if((((*_ALU2pipe)[0])[1].m_rd.machineReg == m_regdependency))
 			return true;
 		return false;
 	}
 
 	bool LS1RegforwardAvailable(int m_regdependency)
 	{
-		if((_LS1pipe[2].m_rd.machineReg == m_regdependency))
+		if((((*_LS1pipe)[0])[2].m_rd.machineReg == m_regdependency))
 			return true;
 		return false;
 	}
@@ -115,7 +136,7 @@ public:
 	{
 	//For load and store
 		//Resolve address dependency
-		if(_LS1pipe[2].extra == address)
+		if(((*_LS1pipe)[0])[2].extra == address)
 			return true;
 		return false;
 	}
@@ -128,7 +149,7 @@ public:
 
 		cerr << "_____________________________________________________" << endl;
 		cerr << "FP Mul Pipe:\t||";
-		for(	pstg = _FPMpipe.begin(); pstg != _FPMpipe.end(); pstg++	)
+		for(	pstg = ((*_FPMpipe)[0]).begin(); pstg != ((*_FPMpipe)[0]).end(); pstg++	)
 		{
 			cerr << (*pstg).traceLineNo << "\t|";
 		}
@@ -136,7 +157,7 @@ public:
 
 		cerr << "_____________________________________________________"<< endl;
 		cerr << "FP Add Pipe:\t||";
-		for(	pstg = _FPApipe.begin(); pstg != _FPApipe.end(); pstg++	)
+		for(	pstg = ((*_FPApipe)[0]).begin(); pstg != ((*_FPApipe)[0]).end(); pstg++	)
 		{
 			cerr << (*pstg).traceLineNo << "\t|";
 		}
@@ -144,7 +165,7 @@ public:
 
 		cerr << "_____________________________________________________"<< endl;
 		cerr << "ALU 1 Pipe:\t||";
-		for(	pstg = _ALU1pipe.begin(); pstg != _ALU1pipe.end(); pstg++	)
+		for(	pstg = ((*_ALU1pipe)[0]).begin(); pstg != ((*_ALU1pipe)[0]).end(); pstg++	)
 		{
 			cerr << (*pstg).traceLineNo << "\t|";
 		}
@@ -152,7 +173,7 @@ public:
 
 		cerr << "_____________________________________________________"<< endl;
 		cerr << "ALU 2 Pipe:\t||";
-		for(	pstg = _ALU2pipe.begin(); pstg != _ALU2pipe.end(); pstg++	)
+		for(	pstg = ((*_ALU2pipe)[0]).begin(); pstg != ((*_ALU2pipe)[0]).end(); pstg++	)
 		{
 			cerr << (*pstg).traceLineNo << "\t|";
 		}
@@ -160,7 +181,7 @@ public:
 
 		cerr << "_____________________________________________________"<< endl;
 		cerr << "LS 1 Pipe:\t||";
-		for(	pstg = _LS1pipe.begin(); pstg != _LS1pipe.end(); pstg++	)
+		for(	pstg = ((*_LS1pipe)[0]).begin(); pstg != ((*_LS1pipe)[0]).end(); pstg++	)
 		{
 			cerr << (*pstg).traceLineNo << "\t|";
 		}
@@ -173,6 +194,7 @@ private:
 	UserInterface* 		_ui;
 	TraceOutputLogger* 	_plogger;
 	ROB* 				_ROB;
+	BranchResolver*		_pBRUnit;	//Call this when a branch is mispredicted
 
 	//D ports that can be hammered by the logic of the scheduler
 	traceinstruction _DFPM;
@@ -182,11 +204,15 @@ private:
 	traceinstruction _DLS1;
 
 	//Actual pipes, on clock the first entry of each gets
-	vector<traceinstruction> _FPMpipe;
-	vector<traceinstruction> _FPApipe;
-	vector<traceinstruction> _ALU1pipe;
-	vector<traceinstruction> _ALU2pipe;
-	vector<traceinstruction> _LS1pipe;
+	vector< vector<traceinstruction> >* _FPMpipe;
+	vector< vector<traceinstruction> >* _FPApipe;
+	vector< vector<traceinstruction> >* _ALU1pipe;
+	vector< vector<traceinstruction> >* _ALU2pipe;
+	vector< vector<traceinstruction> >* _LS1pipe;
+
+
+	//flag that is set if a mispredict happened in the pipeline
+	traceinstruction _didMispredict;
 
 	void FPMPipeToString(vector<string>*	stringFPMpipe	);
 	void FPAPipeToString(vector<string>*	stringFPApipe	);
@@ -194,6 +220,9 @@ private:
 	void ALU2PipeToString(vector<string>*	stringALU2pipe	);
 	void LS1PipeToString(vector<string>*	stringLSpipe	);
 
+//TODO flush out all instructions from pipe younger than mispredicted
+//Uses _didMispredict. so that had better be set up right.
+	void _mispredicthandler();
 };
 
 } /* namespace R10k */

@@ -4,6 +4,7 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
+../src/BranchResolver.cpp \
 ../src/CSE240AProj.cpp \
 ../src/InstDecode.cpp \
 ../src/InstFetch.cpp \
@@ -16,6 +17,7 @@ CPP_SRCS += \
 ../src/utils.cpp 
 
 OBJS += \
+./src/BranchResolver.o \
 ./src/CSE240AProj.o \
 ./src/InstDecode.o \
 ./src/InstFetch.o \
@@ -28,6 +30,7 @@ OBJS += \
 ./src/utils.o 
 
 CPP_DEPS += \
+./src/BranchResolver.d \
 ./src/CSE240AProj.d \
 ./src/InstDecode.d \
 ./src/InstFetch.d \

@@ -63,10 +63,10 @@ public:
 
 class ROB {
 public:
-	ROB(	UserInterface*		ui,
-			TraceOutputLogger* 	logger,
-			freeRegList* 		FreeRegList,
-			regmaptable* 		rmt			)
+	ROB(	UserInterface*			ui,
+			TraceOutputLogger* 		logger,
+			vector <freeRegList>* 	FreeRegList,
+			vector <regmaptable>* 	rmt			)
 	{
 		head = tail 	= 0;
 		_issuePortHead 	= 0;
@@ -124,8 +124,8 @@ private:
 	unsigned int 		tail;
 	int					_issuePortHead;
 	int					_myCycleCounter;
-	freeRegList* 		_FreeRegList;	//The ROB needs this when committing. It will free registers from here
-	regmaptable* 		_regMapTable;	//Also needed when committing, to remove
+	vector <freeRegList>*		_FreeRegList;	//The ROB needs this when committing. It will free registers from here
+	vector <regmaptable>*		_regMapTable;	//Also needed when committing, to remove
 	UserInterface*		_ui;			//Need this to blit out to the user interface
 	TraceOutputLogger*	_plogger;
 

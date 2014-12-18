@@ -5,6 +5,7 @@
  *      Author: king
  */
 
+#include "utils.h"
 #include "instructions.h"
 #include <iostream>
 #include <sstream>	//atoi type thing
@@ -249,7 +250,7 @@ traceinstruction::traceinstruction(string traceline, int tracelineNo)
 	//Swizzle registers for consistency regarding dependency checks and memory disambigation
 	if(intOp == L)						//Load instructions require reg swizzling
 		{rd = rt; rt = BADOperand;}
-	if((intOp == S) || (intOp == B))
+	if((intOp == S) || (intOp == B))	//Stores and branches do not write to any register
 		rd = BADOperand;
 
 }

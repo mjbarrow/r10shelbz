@@ -21,11 +21,11 @@ void InstPipeStage::calc()				//This will just attempt to retire the last elemen
 
 	//Note: /*.back()*/ does not work.
 	//This lets the commit stage commit the instruction at the end of the pipe
-	_ROB->retireEntry(FPMRETIREPORT,_FPMpipe[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(FPARETIREPORT,_FPApipe[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(ALUARETIREPORT,_ALU1pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(ALUBRETIREPORT,_ALU2pipe[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
-	_ROB->retireEntry(LSARETIREPORT,_LS1pipe[1]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(FPMRETIREPORT,((*_FPMpipe)[0])[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(FPARETIREPORT,((*_FPApipe)[0])[2]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(ALUARETIREPORT,((*_ALU1pipe)[0])[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(ALUBRETIREPORT,((*_ALU2pipe)[0])[0]);	//Do not care if it cannot retire, the pipe may contain a bubble
+	_ROB->retireEntry(LSARETIREPORT,((*_LS1pipe)[0])[1]);	//Do not care if it cannot retire, the pipe may contain a bubble
 }
 
 void InstPipeStage::risingEdge()
@@ -36,32 +36,63 @@ void InstPipeStage::risingEdge()
 	vector<string> stringALU2pipe;
 	vector<string> stringLS1pipe;
 
+	//Clear mispredict flag if set
+	_didMispredict = traceinstruction();
+
 	//Do register swizzle. Changes of the ports can't affect the pipes with this approach.
-	_FPMpipe.insert(_FPMpipe.begin(),_DFPM);	//Replace stage 1 with the input port value
-	_FPMpipe.pop_back();						//Remove oldest value. This makes rendering very easy to do
+	((*_FPMpipe)[0]).insert(((*_FPMpipe)[0]).begin(),_DFPM);	//Replace stage 1 with the input port value
+	((*_FPMpipe)[0]).pop_back();						//Remove oldest value. This makes rendering very easy to do
 	if(_DFPM.intOp != BADOpcode)				//Add this instruction to the pipeline diagram (if it is one)
 		_plogger->logEXTrace(_DFPM.traceLineNo);//There was an instruction, add it to the pipeline diagram
 	_DFPM = traceinstruction();					//Reset to a default value in case the port is not touched next cycle.
-	_FPApipe.insert(_FPApipe.begin(),_DFPA);
-	_FPApipe.pop_back();	//As above
+	((*_FPApipe)[0]).insert(((*_FPApipe)[0]).begin(),_DFPA);
+	((*_FPApipe)[0]).pop_back();	//As above
 	if(_DFPA.intOp != BADOpcode)
 		_plogger->logEXTrace(_DFPA.traceLineNo);
 	_DFPA = traceinstruction();
-	_ALU1pipe.insert(_ALU1pipe.begin(),_DALU1);
-	_ALU1pipe.pop_back();	//as above
+	//Detect branch mispredict here
+	((*_ALU1pipe)[0]).insert(((*_ALU1pipe)[0]).begin(),_DALU1);
+	((*_ALU1pipe)[0]).pop_back();	//as above
 	if(_DALU1.intOp != BADOpcode)
-		_plogger->logEXTrace(_DALU1.traceLineNo);
+	{
+		if((_DALU1.intOp == B) && (_DALU1.extra == 1))
+		{
+			//log the mispredict
+			_didMispredict = _DALU1;	//Will allow the scheduler to know sthg was wrong on falling edge
+			_plogger->logMPTrace(_DALU1.traceLineNo);
+			//start restoration
+			_pBRUnit->mispredictRollback(_DALU1);
+//TODO: DUMP PIPES!
+			_mispredicthandler();
+		}
+		else
+			_plogger->logEXTrace(_DALU1.traceLineNo);
+	}
 	_DALU1 = traceinstruction();
-	_ALU2pipe.insert(_ALU2pipe.begin(),_DALU2);
-	_ALU2pipe.pop_back();	//as above
+	//Detect branch mispredict here
+	((*_ALU2pipe)[0]).insert(((*_ALU2pipe)[0]).begin(),_DALU2);
+	((*_ALU2pipe)[0]).pop_back();	//as above
 	if(_DALU2.intOp != BADOpcode)
-		_plogger->logEXTrace(_DALU2.traceLineNo);
+	{
+		if((_DALU2.intOp == B) && (_DALU2.extra == 1))
+		{
+			//log the mispredict
+			_didMispredict = _DALU1;	//Will allow the scheduler to know sthg was wrong on falling edge
+			_plogger->logMPTrace(_DALU2.traceLineNo);
+			//start restoration
+			_pBRUnit->mispredictRollback(_DALU2);
+//TODO: DUMP PIPES!
+			_mispredicthandler();
+		}
+		else
+			_plogger->logEXTrace(_DALU2.traceLineNo);
+	}
 	_DALU2 = traceinstruction();
-	_LS1pipe.insert(_LS1pipe.begin(),_DLS1);
+	((*_LS1pipe)[0]).insert(((*_LS1pipe)[0]).begin(),_DLS1);
 	if(_DLS1.intOp != BADOpcode)
 		_plogger->logEXTrace(_DLS1.traceLineNo);
 	_DLS1 = traceinstruction();
-	_LS1pipe.pop_back();	//as above
+	((*_LS1pipe)[0]).pop_back();	//as above
 
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
@@ -80,6 +111,49 @@ void InstPipeStage::risingEdge()
 	_ui->blitLSPipe(	&stringLS1pipe	);
 }
 
+//=========================================================================================
+//						HELPER FNS
+//=========================================================================================
+void InstPipeStage::_mispredicthandler()
+{
+	vector<traceinstruction>::iterator pstg;
+
+	//clean FPM pipe
+	for(	pstg = ((*_FPMpipe)[0]).begin(); pstg != ((*_FPMpipe)[0]).end(); pstg++	)
+	{
+		if(pstg->traceLineNo > _didMispredict.traceLineNo)
+			*pstg = traceinstruction();//Kill!
+	}
+	//Clean FPA pipe
+	for(	pstg = ((*_FPApipe)[0]).begin(); pstg != ((*_FPApipe)[0]).end(); pstg++	)
+	{
+		if(pstg->traceLineNo > _didMispredict.traceLineNo)
+			*pstg = traceinstruction();//Crush!
+	}
+	//Clean ALU1 pipe
+	for(	pstg = ((*_ALU1pipe)[0]).begin(); pstg != ((*_ALU1pipe)[0]).end(); pstg++	)
+	{
+		if(pstg->traceLineNo > _didMispredict.traceLineNo)
+			*pstg = traceinstruction();//Destroy!
+	}
+	//Clean ALU2 pipe
+	for(	pstg = ((*_ALU2pipe)[0]).begin(); pstg != ((*_ALU2pipe)[0]).end(); pstg++	)
+	{
+		if(pstg->traceLineNo > _didMispredict.traceLineNo)
+			*pstg = traceinstruction();//You Died!
+	}
+	//Clean LS1 pipe
+	for(	pstg = ((*_LS1pipe)[0]).begin(); pstg != ((*_LS1pipe)[0]).end(); pstg++	)
+	{
+		if(pstg->traceLineNo > _didMispredict.traceLineNo)
+			*pstg = traceinstruction();//Ah ha ha ha!
+	}
+}
+
+//==========================================================================================
+//						UTIL FNS
+//==========================================================================================
+
 void InstPipeStage::FPMPipeToString(vector<string>*	stringFPMpipe	)
 {
 	vector<traceinstruction>::const_iterator pstg;
@@ -88,7 +162,7 @@ void InstPipeStage::FPMPipeToString(vector<string>*	stringFPMpipe	)
 
 	opos << "tr#:";
 	rdos << "Prd:";
-	for(	pstg = _FPMpipe.begin(); pstg != _FPMpipe.end(); pstg++	)
+	for(	pstg = ((*_FPMpipe)[0]).begin(); pstg != ((*_FPMpipe)[0]).end(); pstg++	)
 	{
 		if((*pstg).intOp == BADOpcode)
 		{
@@ -113,7 +187,7 @@ void InstPipeStage::FPAPipeToString(vector<string>*	stringFPApipe	)
 	ostringstream rdos; //For the dest reg
 
 	pipetostream(					//This macro implements the body of FPMPipeToString(vector<string>*	stringFPMpipe	)
-					_FPApipe,		//Output pipe to get data from
+					((*_FPApipe)[0]),		//Output pipe to get data from
 					opos,			//string converted opcodes go here
 					rdos		);	//string converted dest regs go here
 
@@ -128,7 +202,7 @@ void InstPipeStage::ALU1PipeToString(vector<string>*	stringALU1pipe	)
 	ostringstream rdos; //For the dest reg
 
 	pipetostream(					//This macro implements the body of FPMPipeToString(vector<string>*	stringFPMpipe	)
-					_ALU1pipe,		//Output pipe to get data from
+					((*_ALU1pipe)[0]),		//Output pipe to get data from
 					opos,			//string converted opcodes go here
 					rdos		);	//string converted dest regs go here
 
@@ -143,7 +217,7 @@ void InstPipeStage::ALU2PipeToString(vector<string>*	stringALU2pipe	)
 	ostringstream rdos; //For the dest reg
 
 	pipetostream(					//This macro implements the body of FPMPipeToString(vector<string>*	stringFPMpipe	)
-					_ALU2pipe,		//Output pipe to get data from
+					((*_ALU2pipe)[0]),		//Output pipe to get data from
 					opos,			//string converted opcodes go here
 					rdos		);	//string converted dest regs go here
 
@@ -158,7 +232,7 @@ void InstPipeStage::LS1PipeToString(vector<string>*	stringLSpipe	)
 	ostringstream rdos; //For the dest reg
 
 	pipetostream(					//This macro implements the body of FPMPipeToString(vector<string>*	stringFPMpipe	)
-					_LS1pipe,		//Output pipe to get data from
+					((*_LS1pipe)[0]),		//Output pipe to get data from
 					opos,			//string converted opcodes go here
 					rdos		);	//string converted dest regs go here
 

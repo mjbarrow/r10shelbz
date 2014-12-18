@@ -5,9 +5,6 @@
  *      Author: king
  */
 
-#ifndef INSTSCHED_H_
-#define INSTSCHED_H_
-
 #include <iostream>
 #include <queue>
 #include <algorithm>
@@ -17,6 +14,12 @@
 #include "ROB.h"			//This needs to do something to the ROB? Actually I dont think so...
 #include "userinterface.h"
 #include "TraceOutputLogger.h"
+#include "BranchResolver.h"
+
+#ifndef INSTSCHED_H_
+#define INSTSCHED_H_
+
+
 
 //This is used for debug, so is much more verbose than what appears in the UI version
 /*#define PrintQueueEntry(i,x) 				cerr << "<|| #" << i;	\
@@ -52,48 +55,6 @@ using namespace std;
 
 namespace R10k {
 
-class FPQueueEntry: public traceinstruction
-{
-public:
-	bool m_rt_rdy;
-	bool m_rs_rdy;
-	bool add_rdy;		//Only used by the store instruction for mem disambiguation
-
-	FPQueueEntry(){m_rt_rdy = m_rs_rdy = add_rdy = false;}
-	FPQueueEntry(traceinstruction* t) : traceinstruction(*t) {m_rt_rdy = m_rs_rdy = add_rdy = false;}
-
-	virtual~FPQueueEntry(){}
-
-};
-typedef FPQueueEntry ALUQueueEntry;
-typedef FPQueueEntry LSQueueEntry;
-
-typedef vector<FPQueueEntry>::iterator FPQueueEntryiterator;	//Used when printing out the regmaptable
-typedef FPQueueEntryiterator ALUQueueEntryiterator;
-typedef FPQueueEntryiterator LSQueueEntryiterator;
-
-class FPQueue: public vector<FPQueueEntry>
-{
-public:
-	FPQueue(){}
-
-/*	void print()
-	{
-		int i = 0;
-		cerr << "[" << endl;
-		for(FPQueueEntryiterator it = this->begin(); it != this->end(); it++)
-		{
-//			PrintQueueEntry(i,it);
-			i++;
-		}
-		cerr << "]" << endl;
-	}*/
-
-	virtual~FPQueue(){}
-};
-
-typedef FPQueue ALUQueue;
-typedef FPQueue LSQueue;
 
 //Arbitration struct. Corresponds to all entry ports of the Instruction pipe
 class arbitrationStruct
@@ -110,11 +71,6 @@ public:
 
 	virtual~arbitrationStruct(){}
 
-//	FPQueueEntryiterator 	scheduledFPM;
-//	FPQueueEntryiterator 	scheduledFPA;
-//	ALUQueueEntryiterator 	scheduledALU1;
-//	ALUQueueEntryiterator 	scheduledALU2;
-//	LSQueueEntryiterator 	scheduledLS1;
 	int 	scheduledFPM;
 	int 	scheduledFPA;
 	int 	scheduledALU1;
@@ -127,18 +83,21 @@ class InstSchedStage {
 public:
 	InstSchedStage(	UserInterface*		ui,
 					TraceOutputLogger*	logger,
+					vector<FPQueue>*	FPInstructionQueue,
+					vector<ALUQueue>*	ALUInstructionQueue,
+					vector<LSQueue>*	LSInstructionQueue,
 					ROB* 				ROB,
+					BranchResolver*		pBrUnit,
 					InstPipeStage* 		pPipes)
 	{
 		_ui 									= ui;
 		_plogger								= logger;
 		_ROB 									= ROB;
+		_pBrUnit								= pBrUnit;
 		_pPipes 								= pPipes;
-//		_scheduledInstructions.scheduledFPM 	= _FPInstructionQueue.end();
-//		_scheduledInstructions.scheduledFPA 	= _FPInstructionQueue.end();
-//		_scheduledInstructions.scheduledALU1 	= _ALUInstructionQueue.end();
-//		_scheduledInstructions.scheduledALU2 	= _ALUInstructionQueue.end();
-//		_scheduledInstructions.scheduledLS1 	= _LSInstructionQueue.end();
+		_FPInstructionQueue						= FPInstructionQueue;
+		_ALUInstructionQueue					= ALUInstructionQueue;
+		_LSInstructionQueue						= LSInstructionQueue;
 		_DFPQidx 								= 0;
 		_DALUQidx 								= 0;
 		_DLSQidx								= 0;
@@ -146,12 +105,13 @@ public:
 
 	//Project spec function
 	void risingEdge();					//perform register swizelling using the input ports and refresh output
+	void fallingEdge();					//Purge the output if the execution stage noted a mispredict
 	void calc();//promoQueueToPipe()	//Actually try to schedule instructions
 
 	//The Scheduler class should check this before trying to call pushInstruction
-	bool isFPQueueFull()						{if(_FPInstructionQueue.size() 	>= 16)return true; return false;}
-	bool isALUQueueFull()						{if(_ALUInstructionQueue.size() >= 16)return true; return false;}
-	bool isLSQueueFull()						{if(_LSInstructionQueue.size() 	>= 16)return true; return false;}
+	bool isFPQueueFull()						{if(((*_FPInstructionQueue)[0]).size() 	>= 16)return true; return false;}
+	bool isALUQueueFull()						{if(((*_ALUInstructionQueue)[0]).size() >= 16)return true; return false;}
+	bool isLSQueueFull()						{if(((*_LSInstructionQueue)[0]).size() 	>= 16)return true; return false;}
 //DEBUG! MOVE THESE TO PRIVATE?!
 	//Can fail, The sheduler ought to check or it could drop an instruction.
 	bool pushFPInstruction(traceinstruction i);
@@ -206,13 +166,14 @@ private:
 	InstPipeStage*		_pPipes;
 
 	arbitrationStruct	_scheduledInstructions;
-	FPQueue 			_FPInstructionQueue;
-	ALUQueue			_ALUInstructionQueue;
-	LSQueue				_LSInstructionQueue;
+	vector<FPQueue>* 	_FPInstructionQueue;	//These Queues are actually managed by
+	vector<ALUQueue>*	_ALUInstructionQueue;	//The branch resolution unit.
+	vector<LSQueue>*	_LSInstructionQueue;	//They are instructions to be executed.
 	UserInterface*		_ui;			//Need this to blit out to the user interface
 	TraceOutputLogger*	_plogger;		//Used to drive the graphical pipeline diagram (also dumped out)
 
 	//Logic related stuff
+	BranchResolver* _pBrUnit;
 	//These are to let the Decoder stage load up ports to this stage
 	//Array representing input ports
 	FPQueueEntry 	_DFPQueue[FPQPORTCOUNT];
@@ -244,7 +205,7 @@ private:
 	{
 		string fpQEntryString ="empty";
 		ostringstream os;
-		FPQueueEntry line  = _FPInstructionQueue[entry];
+		FPQueueEntry line  =((* _FPInstructionQueue)[0])[entry];
 
 		PrintQueueSummary(	os,		//Print to this stream
 							line);	//This value
@@ -258,7 +219,7 @@ private:
 	{
 		string ALUQEntryString ="empty";;
 		ostringstream os;			//Use this to convert to string
-		FPQueueEntry line  = _ALUInstructionQueue[entry];	//Element to covert
+		FPQueueEntry line  = ((*_ALUInstructionQueue)[0])[entry];	//Element to covert
 
 		PrintQueueSummary(			//Perform conversion
 							os,		//Print to this stream
@@ -273,7 +234,7 @@ private:
 	{
 		string LSQEntryString ="empty";;
 		ostringstream os;			//Use this to convert to string
-		FPQueueEntry line  = _LSInstructionQueue[entry];	//Element to covert
+		FPQueueEntry line  = ((*_LSInstructionQueue)[0])[entry];	//Element to covert
 
 		PrintQueueSummary(			//Perform conversion
 							os,		//Print to this stream

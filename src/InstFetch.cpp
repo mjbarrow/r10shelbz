@@ -30,21 +30,66 @@ void InstFetchStage::risingEdge()
 	instructionstream = vector<traceinstruction>();	//CLEAN UP THE INSTRUCTION STREAM
 }
 
+//Branch mispredict rollback
+void InstFetchStage::fallingEdge()
+{
+
+}
+
 void InstFetchStage::calc()
 {
 	int loop = INSTDECODEPERCYCLE;
 	std::string traceline;
+	traceinstruction currentInstruction;
 
 //take in feedback from the decode stage or whatever to limit the number of
 //Instructions to pull in
 	loop -= _pdecstage->getLinesAccepted();
 
+	//Resolve any mispredicted branches
+	if(		(loop < INSTDECODEPERCYCLE) && 			//possible to issue an instruction
+			(_failedBranch.extra !=0)		)		//Should re-execute a mispredicted branch
+	{
+		instructionstream.push_back(currentInstruction);	//Present branch for execution
+		_plogger->logIFTrace(_tracelinenumber);				//Log the instruction fetch for the pipeline diagram
+
+		loop++;
+		_tracelinenumber++;
+
+		_failedBranch.extra = 0;	//Never re-do this instruction again
+	}
+
+	//Normal instruction decode flow
 	while (loop < INSTDECODEPERCYCLE)
 	{
 		if(!getline(fulltrace, traceline))
 			break;
 
-		instructionstream.push_back(traceinstruction(traceline,_tracelinenumber));
+		currentInstruction = traceinstruction(traceline,_tracelinenumber);
+		//Check if this is a failed branch. if so, we will need to keep a file pointer
+		//and fixed up branch for when the simulator rolls back.
+		if(		(currentInstruction.intOp == B) && 			//This is a branch
+				(currentInstruction.extra != 0) && 			//It will mispredict
+				(currentInstruction.traceLineNo < _failedBranch.traceLineNo)		)	//We have no earlier mispredict logged
+		{
+		//	_failedBranch 			= currentInstruction;
+		//	_failedBranch.extra 	= 0;					//It will be right next time for sure
+		//	_failedPlusOneFilePos 	= fulltrace.tellg();	//File position of next instruction
+	//		_branchAddQ.push(fulltrace.tellg());			//File position of next instruction from branch.
+
+//SHOULD USE ANOTHER FUNCTION
+			_BrUnit->logBranchAddress(fulltrace.tellg(),currentInstruction);
+//			_BrUnit->detectBranch(	currentInstruction,
+//									instructionstream,	//Useless, these are old instructions!
+//									fulltrace.tellg()		);	//Take a system snapshot
+														//This saves a copy of:
+														//reg map
+														//other stuff
+	//TODO this will loose registers, because present in-flight instructions will be lost and won't
+	//Unmap!
+		}
+
+		instructionstream.push_back(currentInstruction);
 		_plogger->logIFTrace(_tracelinenumber);				//Log the instruction fetch for the pipeline diagram
 
 		loop++;

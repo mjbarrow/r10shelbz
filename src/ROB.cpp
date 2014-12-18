@@ -233,12 +233,6 @@ void ROB::_commitTailInstructions(int count)
 		//We may only commit instructions which have no non-retired instructions that depend on it.
 		for(inflight = ROBbuffer.begin(); inflight < ROBbuffer.end(); inflight++)
 		{
-			//If this "inflight" instruction is not executing and it requires use of the commit candidate dest reg
-			//We cannot commit yet
-/*FULLY DISCARD THIS CHECK, ASSUME SCHEDULER HOLDS COPIES OF CALCULATED REGISTERS			if(		/*(!inflight->didExecute) &&*/
-/*					(inflight->m_rs == commitme.m_rd.machineReg) &&
-					(inflight->rs != BADOpcode)							)	//Discard this check if the rd rs register is not used
-				return;*/
 			//If this "inflight" instruction is not retired and it requires use of the commit candidate dest reg
 			//We cannot commit yet
 			if(		/*(!inflight->didExecute) && Not valid. you do not have to wait for didExecute*/
@@ -252,13 +246,13 @@ void ROB::_commitTailInstructions(int count)
 				return;
 		}
 
-		_FreeRegList->push(commitme.m_rd.machineReg);			//Free the machine destination register
+		(*_FreeRegList)[0].push(commitme.m_rd.machineReg);			//Free the machine destination register
 		_plogger->logCMTrace(commitme.traceLineNo);					//Add the instruction to the pipeline diagram
 																//Get a map iterator for the ISA reg-> machine reg
 																//For this trace line
 		ISARegToUnmap.ISAReg			= commitme.rd;			//Get the ISA reg for the trace line
 		ISARegToUnmap.InstanceCounter 	= commitme.m_rd.ISAInstanceCounter;	//Get the correct instance of this ISA reg
-		_regMapTable->erase(ISARegToUnmap.Key);					//The <key,value> <{instance,ISAReg},machineReg> can be deleted from our map
+		(*_regMapTable)[0].erase(ISARegToUnmap.Key);					//The <key,value> <{instance,ISAReg},machineReg> can be deleted from our map
 
 		ROBbuffer[tail] = robEntry();				//Blank out the old content, its junk.
 		tail++;
