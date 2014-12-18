@@ -20,6 +20,9 @@ void InstSchedStage::risingEdge()
 	vector<string> stringLSInsQueue;
 	unsigned int i;
 
+	if(*_pstallInput)		//If the pipe has stalled
+		return;				//Do nothing
+
 	//DO register swizzle By reading in the input ports to this stage
 	//Input ports are set using "pushFPInstruction()" by a connected driving stage "calc()" method.
 
@@ -58,6 +61,11 @@ void InstSchedStage::risingEdge()
 void InstSchedStage::fallingEdge()
 {
 	unsigned int i;
+
+	if(*_pstallInput)		//If the pipe has stalled
+		return;				//Do nothing
+
+/*
 	traceinstruction LastBr = _pPipes->didBranchMispredict();
 
 	//Start purge pipe logic
@@ -106,7 +114,7 @@ void InstSchedStage::fallingEdge()
 		}
 	}
 	//End purge pipe logic
-
+*/
 	//Begin Enqueue
 	//Check all input ports and if any port has an instruction, add it to the
 	//FP instruction queue to be executed when dependencies are resolved
@@ -164,6 +172,9 @@ void InstSchedStage::fallingEdge()
 
 void InstSchedStage::calc()//promoQueueToPipe()
 {
+	if(*_pstallInput)		//If the pipe has stalled
+		return;				//Do nothing
+
 	//First resolve all dependencies
 	_resolveSchedDependencies();
 
@@ -276,7 +287,7 @@ void InstSchedStage::_readyALUQueue()
 		{
 			//Save state for branch mispredict recovery
 			if(qitr->intOp == B)
-				_pBrUnit->detectBranch(*qitr);
+				_pBrUnit->detectBranch(*qitr);	//Do this here because we need all younger instructions re-done.
 
 			//Search ROB for m_rs
 			if(_ROB->isDependencyMet(qitr->m_rs))					//Check ROB
@@ -541,7 +552,8 @@ void InstSchedStage::_getFirsttwoALU(int* ALU1idx, int* ALU2idx)//ALUQueueEntryi
 					chkitr++;
 				}
 			}
-			else
+			//Don't want the second operation to be assigned if the above test didn't work out.
+			if(	(qitr->intOp != B) 	)
 				{*ALU2idx = loop; secondALUFound = true;}	//may only take instruction if not
 		}													//A branch.
 		qitr++;

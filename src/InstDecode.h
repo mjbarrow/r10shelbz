@@ -31,7 +31,7 @@ public:
 						TraceOutputLogger* 		logger,
 						InstSchedStage* 		pScheduler,
 						ROB* 					pROB,
-	//					BranchResolver*			pBrUnit,
+						bool*					stallInput,
 						vector<freeRegList>* 	pFreeRegList,
 						vector<regmaptable>* 	pRegMapTable,
 						vector<ISAreginstance>* pMaxISAregmap)
@@ -44,7 +44,7 @@ public:
 		_FreeRegList 		= pFreeRegList;
 		_RegMapTable 		= pRegMapTable;
 		_ISAInstanceRegmap 	= pMaxISAregmap;		//this should wrap around, so the ROB may not be larger than 2^16
-
+		_stallInput			= stallInput;			//Signal that will stall this stage if needed
 
 		for(i = 0; i< renameRegCount; i++){(*_FreeRegList)[0].push(i);}						//Initialize free reg list
 		for(i = 0; i< ISARegCount; i++){(*_ISAInstanceRegmap)[0].insert(ISAreginstancepair(i,0));} //Initialize reginstance to 0 for all ISAReg's
@@ -60,28 +60,8 @@ public:
 		_tracebufhead = 0;
 	}
 
-
-//TODO:	void toggleclk();
-	//TODO swizzle registers
-	//Blit the appropriate widget
 	void risingEdge();
-
-	void calc()
-	{
-		_traceLinesAccepted = 0;
-
-		//BEHAVIOUR. PUSH Into THE QUEUES IN ORDER. IF
-		//INSTRUCTION CANNOT BE PUSHED, STOP TRYING TO PUSH ANY SUBSEQUENT INSTRUCTION INTO QUEUES.
-
-		//The instruction Decode width is 4 Try to decode
-		while(_traceLinesAccepted < MAXDECODEDINSTPERCYCLE)
-		{
-			if(_QTraceLines[_traceLinesAccepted].intOp != BADOpcode)	//Dont do work on naff tracelines
-				if(!Decode(_QTraceLines[_traceLinesAccepted]))			//Try to decode this trace line
-					break;												//If we cannot, just give up.
-			_traceLinesAccepted++;										//Track how many tracelines we were able
-		}																//To decode
-	}
+	void calc();
 
 	//The IO function of this stage. set the D input and read the feedback output.
 	//You can do this as many times as you want you wont change what does on with the calc()
@@ -124,20 +104,20 @@ private:
 
 	string regmapEntryToString(regmappair entry);
 	//Use this to update the UI
-	UserInterface* 	_ui;
-	TraceOutputLogger* _plogger;
+	UserInterface* 		_ui;
+	TraceOutputLogger* 	_plogger;
 
 	//Need to connect to some external hardware. Namely, an ROB buffer
-	ROB* 			_pROB;
+	ROB* 				_pROB;
 	//Also need to connect to the Scheduler because according to R10K paper Decoder fills its
 	//Instruction queues
-	InstSchedStage* _pScheduler;
+	InstSchedStage* 	_pScheduler;
 
-	//Class that can push all register files to the stack if a branch is detected
-//	BranchResolver*	_BrUnit;
+	//Check this when doing anything. if it is true, you must stall because of a mispredict
+	bool*				_stallInput;
 
 	//machine registers in the ActiveList that are available to be assigned to ISA regs for working.
-	vector<freeRegList>* 	_FreeRegList;
+	vector<freeRegList>* _FreeRegList;
 
 	//Instruction decode register renaming structures
 	vector<regmaptable>* 	_RegMapTable;

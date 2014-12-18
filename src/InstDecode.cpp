@@ -17,7 +17,7 @@ using namespace std;
 namespace R10k {
 
 //===================================================================================================================
-//							SYNCHRONOUS FUNCTIONS
+//							Project required FUNCTIONS
 //==================================================================================================================
 
 //TODO swizzle registers
@@ -27,6 +27,9 @@ void InstDecodeStage::risingEdge()
 	vector<string> stringRegMap;
 	std::map<int,int>::iterator rmapit;
 	regmappair a;
+
+	if(*_stallInput)		//Do nothing if this stage should stall
+		return;				//due to branch mispredict
 
 	//Swizzle the D and Q registers
 	int i = 0;
@@ -45,7 +48,6 @@ void InstDecodeStage::risingEdge()
 		//Back up the register files if need be
 		i++;
 	}
-
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
 	for(rmapit = (*_RegMapTable)[0].begin(); rmapit != (*_RegMapTable)[0].end(); rmapit++)
@@ -57,6 +59,26 @@ void InstDecodeStage::risingEdge()
 
 	//trigger the blit function so that the screen output is refreshed of the ROB content
 	_ui->blitRegMapTable(&stringRegMap);
+}
+
+void InstDecodeStage::calc()
+{
+	if(*_stallInput)		//Do nothing if this stage should stall
+		return;				//due to branch mispredict
+
+	_traceLinesAccepted = 0;
+
+	//BEHAVIOUR. PUSH Into THE QUEUES IN ORDER. IF
+	//INSTRUCTION CANNOT BE PUSHED, STOP TRYING TO PUSH ANY SUBSEQUENT INSTRUCTION INTO QUEUES.
+
+	//The instruction Decode width is 4 Try to decode
+	while(_traceLinesAccepted < MAXDECODEDINSTPERCYCLE)
+	{
+		if(_QTraceLines[_traceLinesAccepted].intOp != BADOpcode)	//Dont do work on naff tracelines
+			if(!Decode(_QTraceLines[_traceLinesAccepted]))			//Try to decode this trace line
+				break;												//If we cannot, just give up.
+		_traceLinesAccepted++;										//Track how many tracelines we were able
+	}																//To decode
 }
 
 //===================================================================================================================

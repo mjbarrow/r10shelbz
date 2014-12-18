@@ -88,6 +88,7 @@ public:
 					vector<LSQueue>*	LSInstructionQueue,
 					ROB* 				ROB,
 					BranchResolver*		pBrUnit,
+					bool*				pstallInput,
 					InstPipeStage* 		pPipes)
 	{
 		_ui 									= ui;
@@ -101,6 +102,7 @@ public:
 		_DFPQidx 								= 0;
 		_DALUQidx 								= 0;
 		_DLSQidx								= 0;
+		_pstallInput							= pstallInput;
 	}
 
 	//Project spec function
@@ -184,7 +186,7 @@ private:
 	int				_DLSQidx;
 
 	//End logic related stuff
-
+	bool*			_pstallInput;
 
 	//The Execution unit
 

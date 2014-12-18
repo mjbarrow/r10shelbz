@@ -104,9 +104,9 @@ public:
 	void retireEntry(	int retireport,													//Ex pipes call this during calc.
 						traceinstruction retire){_retirePorts[retireport] = retire;}	//To ensure forwarding, it is acted on during fallingEdge()
 
-//DO NOT NEED TO WAIT UNTIL INSTRUCTION EXECUTED, JUST WAIT UNTIL IT IS SCHEDULED (QUEUES HOLD OPERANDS)
-//	void entryExecuted(  int executeport,
-//						 traceinstruction executing){_executionPorts[executeport] = executing;}
+	//Call this when an instruction has been put down one of the execution pipes.
+	void entryExecuted(traceinstruction* inflight);
+	bool hasEntryExecuted(traceinstruction checkme);
 //REmove this feedback path	void entryScheduled(  int scheduleport,
 //						 traceinstruction scheduled){_executionPorts[scheduleport] = scheduled;}
 
@@ -133,8 +133,8 @@ private:
 	traceinstruction _retirePorts[RETIREPORTCOUNT];
 	traceinstruction _issuedInsts[ISSUEWAYCOUNT];
 
-	//used in commit timing resolution
-//	traceinstruction _executionPorts[RETIREPORTCOUNT];//TODO rename this to scheduled ports
+	//used by branch resolution when restoring queues
+//	traceinstruction _executingPorts[RETIREPORTCOUNT];//TODO rename this to scheduled ports
 //Remove this feedback path	vector<traceinstruction>_executionPorts;
 
 	vector<robEntry>ROBbuffer;

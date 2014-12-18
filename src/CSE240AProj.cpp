@@ -55,7 +55,16 @@ int main() {
 	vector< vector<traceinstruction> > ALU2pipe(BRANCHBUFCOUNT +1,vector<traceinstruction>());
 	vector< vector<traceinstruction> > LS1pipe(BRANCHBUFCOUNT +1,vector<traceinstruction>());
 
-	BranchResolver		r10kBrUnit( &FreeRegList,				//Used to manage the branch stack.
+	//Control signals (a wire basically)
+	bool ExStageStall = false;	//This is global because it is like a global net.
+
+	ROB 				r10kCommit(	&UI,					//Shared User interface
+									&uiPipeLineDiagram,
+									&FreeRegList,
+									&r10kRegisterMap	);	//Shared Hardware
+
+	BranchResolver		r10kBrUnit( &r10kCommit,			//Used to clean up restored queues of instructions
+									&FreeRegList,				//Used to manage the branch stack.
 									&r10kRegisterMap,
 									&r10kRegMapDisambiguator,
 									&FPInstructionQueue,
@@ -67,15 +76,11 @@ int main() {
 									&ALU2pipe,
 									&LS1pipe								);
 
-	ROB 				r10kCommit(	&UI,					//Shared User interface
-									&uiPipeLineDiagram,
-									&FreeRegList,
-									&r10kRegisterMap	);	//Shared Hardware
-
 	InstPipeStage 		r10kExecute(	&UI,
 										&uiPipeLineDiagram,
 										&r10kCommit,
 										&r10kBrUnit,
+										&ExStageStall,
 										&FPMpipe,
 										&FPApipe,
 										&ALU1pipe,
@@ -89,19 +94,21 @@ int main() {
 										&LSInstructionQueue,
 										&r10kCommit,		//Must resolve met dependencies using the ROB
 										&r10kBrUnit,
+										&ExStageStall,
 										&r10kExecute);		//Scheduler must fill pipes.
 
 	InstDecodeStage 	r10kDecode(&UI,
 								&uiPipeLineDiagram,
 								&r10kSchedule,			//Decoder must fill the Scheduler queues.
 								&r10kCommit,				//Decoder must make new entries in ROB
-							//	&r10kBrUnit,
+								&ExStageStall,
 								&FreeRegList,
 								&r10kRegisterMap,
 								&r10kRegMapDisambiguator);	//Needs to be able to add decoded instructions to the r10k ROB
 
 	InstFetchStage		r10kFetch(	&UI,
 									&r10kBrUnit,
+									&ExStageStall,
 									&r10kDecode,
 									&uiPipeLineDiagram,
 									"intrace.txt");		//Debug file only
@@ -132,7 +139,14 @@ int main() {
 		uiPipeLineDiagram.risingEdge();
 //FALLING EDGE COMPLETES BEFORE CALC
 		r10kCommit.fallingEdge();		//this ensures all ROB activity is done before  scheduling
-		r10kBrUnit.fallingEdge();
+//DOESNOTHING		r10kBrUnit.fallingEdge();
+		r10kExecute.fallingEdge();		//this will tell F,S and D stages not to clear ports
+										//and stall by asserting ExStageStall
+
+//TODO all units must clear their ports on a falling edge and re-calc if they detect
+//A mispredict. They do that by getting notification from the BrUnit.
+//The BrUnit must complete its falling edge first (suggests that logic belongs in BrUnit calc)
+
 		r10kSchedule.fallingEdge();		//cancel any scheduled instructions on mispredict
 
 	//END CLOCK

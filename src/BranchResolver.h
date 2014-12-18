@@ -13,7 +13,7 @@
 #include "instructions.h"
 #include "userinterface.h"
 #include "TraceOutputLogger.h"
-//#include "InstSched.h"
+#include "ROB.h"
 
 #ifndef BRANCHRESOLVERZ_H_
 #define BRANCHRESOLVERZ_H_
@@ -31,7 +31,8 @@ typedef struct
 //to execute branches out of order, the stack should be mapped
 class BranchResolver {
 public:
-	BranchResolver(	vector <freeRegList>* 		FreeRegList,
+	BranchResolver(	ROB*						pROB,
+					vector <freeRegList>* 		FreeRegList,
 					vector <regmaptable>*  		r10kRegisterMap,
 					vector <ISAreginstance>*  	r10kRegMapDisambiguator,
 					vector<FPQueue>*			FPInstructionQueue,
@@ -43,6 +44,7 @@ public:
 					vector< vector<traceinstruction> >* ALU2pipe,
 					vector< vector<traceinstruction> >* LS1pipe				)
 	{
+		_pROB					= pROB;
 		_branchBuffIndex 		= 1;						//Buffers are indexes 1-4, maps are indexes 0.
 		_FreeRegList 			= FreeRegList;				//Shared Hardware between Decode ROB
 		_r10kRegisterMap 		= r10kRegisterMap;			//Shared hardware
@@ -76,12 +78,11 @@ public:
 	//This class juggles around copies at indexes 1-4
 	void fallingEdge(){}
 
-	//All of this is from the decoder.
-	//void BranchResolver::detectBranch(	traceinstruction branch,
-	//									vector<traceinstruction> DecodeState,
-	//									long long int FetchState				)
+	//CAll this from scheduler when you are about to issue a branch
 	void detectBranch(traceinstruction branch);
 
+	//CAll this during execution when you need to roll back.
+	//You will get the processor state saved during scheduling of that branch
 	void mispredictRollback(traceinstruction branch);
 
 	//Log the address of a branch
@@ -91,12 +92,14 @@ public:
 		_FetchState[_instfetchstateidx].address = address;
 		_FetchState[_instfetchstateidx].branch = branch;
 		_instfetchstateidx++;
-		_instfetchstateidx &= 2;
+		_instfetchstateidx &= 7;
 	}
 
+/*NEVER REFETCH. TRACE IS IN ORDER
 	//Should be called by the Instruction fetch stage
-	void instFetchRollbackHelper(){}
-
+	//During calc. it can restore the file pointer
+	bool instFetchRollbackHelper();
+*/
 	virtual ~BranchResolver(){}
 private:
 	int _branchBuffIndex;
@@ -105,6 +108,7 @@ private:
 	vector<traceinstruction> _branchstackmap;
 
 	//GP Register file state
+	ROB*						_pROB;
 	vector <freeRegList>* 		_FreeRegList;				//Shared Hardware between Decode ROB
 	vector <regmaptable>*  		_r10kRegisterMap;			//Shared hardware
 	vector <ISAreginstance>*  	_r10kRegMapDisambiguator;	//Shared hardware between ROB Decode //this should wrap around, so the ROB may not be larger than 2^16
@@ -120,9 +124,9 @@ private:
 	vector< vector<traceinstruction> >* _LS1pipe;
 	//Decode stage state, used when restoring from a branch
 	vector< vector<traceinstruction> >	_DecodeState;
-	instfetchstate						_FetchState[BRANCHBUFCOUNT];
+	instfetchstate						_FetchState[BRANCHBUFCOUNT + 4];	//Extra entries bc
 	int _instfetchstateidx;
-//	int									_lastMispredict
+	traceinstruction					_lastMispredict;
 };
 
 } /* namespace R10k */

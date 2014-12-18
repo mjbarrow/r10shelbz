@@ -82,6 +82,7 @@ void BranchResolver::detectBranch(traceinstruction branch)
 //Called from pipe when a mispredicted branch is found
 void BranchResolver::mispredictRollback(traceinstruction branch)
 {
+	vector<FPQueue>::iterator it;	//use to remove inflight instructions
 	int loop;
 
 	for(loop=1; loop< BRANCHBUFCOUNT; loop++)
@@ -97,9 +98,9 @@ void BranchResolver::mispredictRollback(traceinstruction branch)
 		{cerr << "DANGER: UNABLE TO RESTORE SYSTEM AFTER MISPREDICT" << endl; return;}
 
 	//Restore system state
-	(*_FreeRegList)[0] 				= (*_FreeRegList)[_branchBuffIndex];
-	(*_r10kRegisterMap)[0] 			= (*_r10kRegisterMap)[_branchBuffIndex];
-	(*_r10kRegMapDisambiguator)[0]	= (*_r10kRegMapDisambiguator)[_branchBuffIndex];
+//DONT ROLL BACK MAPS. INFLIGHT INSTRUCTIONS WILL TAKE CARE OF THEM	(*_FreeRegList)[0] 				= (*_FreeRegList)[_branchBuffIndex];
+//	(*_r10kRegisterMap)[0] 			= (*_r10kRegisterMap)[_branchBuffIndex];
+//	(*_r10kRegMapDisambiguator)[0]	= (*_r10kRegMapDisambiguator)[_branchBuffIndex];
 	(*_FPInstructionQueue)[0]		= (*_FPInstructionQueue)[_branchBuffIndex];
 	(*_ALUInstructionQueue)[0]		= (*_ALUInstructionQueue)[_branchBuffIndex];
 	(*_LSInstructionQueue)[0]		= (*_LSInstructionQueue)[_branchBuffIndex];
@@ -109,6 +110,36 @@ void BranchResolver::mispredictRollback(traceinstruction branch)
 //DONT ROLL BACK PIPES, LET THEM DO THEIR OWN CARETAKING (*_FPMpipe)[0]		//(*_ALU2pipe)[0]					= (*_ALU2pipe)[_branchBuffIndex];
 //DONT ROLL BACK PIPES, LET THEM DO THEIR OWN CARETAKING (*_FPMpipe)[0]		//(*_LS1pipe)[0]					= (*_LS1pipe)[_branchBuffIndex];
 	//ROLL BACK Fetcher and decoder!
+
+	//clean instruction queues of executed instructions
+	for(	vector<FPQueueEntry>::iterator pstg = ((*_FPInstructionQueue)[0]).begin(); pstg != ((*_FPInstructionQueue)[0]).end(); pstg++										)
+	{
+		if(_pROB->hasEntryExecuted(*pstg))
+			((*_FPInstructionQueue)[0]).erase(pstg);
+	}
+
+	for(	vector<FPQueueEntry>::iterator pstg = ((*_ALUInstructionQueue)[0]).begin(); pstg != ((*_ALUInstructionQueue)[0]).end(); pstg++										)
+	{
+		if(_pROB->hasEntryExecuted(*pstg))
+			((*_ALUInstructionQueue)[0]).erase(pstg);
+	}
+
+	for(	vector<FPQueueEntry>::iterator pstg = ((*_LSInstructionQueue)[0]).begin(); pstg != ((*_LSInstructionQueue)[0]).end(); pstg++										)
+	{
+		if(_pROB->hasEntryExecuted(*pstg))
+			((*_LSInstructionQueue)[0]).erase(pstg);
+	}
 }
+
+/*
+ * NEVER REFETCH! TRACE IS IN ORDER EXECUTED!
+//Instruction fetch rollback helper (re-set file pointer in trace file to re-fetch instructions
+//Or, go back in time
+bool instFetchRollbackHelper()
+{
+
+	return false;
+}
+*/
 
 } /* namespace R10k */

@@ -34,6 +34,7 @@ public:
 	//Requires a fully qualified correct path to a tracefile
 	InstFetchStage(	UserInterface* 		ui,
 					BranchResolver*		pBrUnit,
+					bool*				pstallInput,
 					InstDecodeStage* 	decode,
 					TraceOutputLogger*	logger,
 					const char*			TraceFile
@@ -43,6 +44,7 @@ public:
 		_pdecstage 				= decode;
 		_ui 					= ui;
 		_BrUnit					= pBrUnit;
+		_stallInput				= pstallInput;
 		_plogger 				= logger;
 		_failedBranch 			= traceinstruction();		//used when re-fetching mispredicted
 		_failedBranch.extra		= 0;						//By the way Vegita, did I tell you that my
@@ -53,7 +55,7 @@ public:
 
 	//Project required functions
 	void risingEdge();	//Push all of the instructions
-	void fallingEdge();
+//	void fallingEdge();
 	void calc();		//Pull in 4 instructions if you can
 
 	//Logical control lever used to re-fetch instruction stream on failed branch prediction
@@ -80,6 +82,7 @@ private:
 	long long int		_failedPlusOneFilePos;
 	traceinstruction	_failedBranch;
 	BranchResolver*		_BrUnit;
+	bool*				_stallInput;
 
 	string traceInstructionToString(int entry);
 };

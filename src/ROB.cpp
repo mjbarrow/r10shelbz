@@ -79,20 +79,29 @@ void ROB::fallingEdge()
 					i->retired = true;
 				}
 
-				/*SHOULD retire by register map key, but this does not work
-				 * Since some instructions have no destination register.
-				 * //For load. this instruction can be matched
-				if ((i->m_rd.Key == _retirePorts[loop].m_rd.Key)
-						&& (_retirePorts[loop].m_rd.Key != BADOpcode))	//If we find the trace instruction at the input port
-				{
-					(*i).retired = true;							//Retire that instruction in the ROB
-				}*/
 			}														//Now the scheduler will know another register is ready
 		}
 		_retirePorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
 													//If the execution pipes don't do anything next cycle
 	}
-		//return false;
+/*
+	//Note all new in-flight instructions
+	for(loop = 0; loop < RETIREPORTCOUNT; loop++)
+	{
+		if(_executingPorts[loop].intOp != BADOpcode)			//if this is some weird value just dont even bother trying to retire
+		{
+			for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
+			{
+				if(i->traceLineNo == _executingPorts[loop].traceLineNo && (i->intOp != BADOpcode))
+				{
+					i->didExecute = true;
+				}
+
+			}														//Now the scheduler will know another register is ready
+		}
+		_executingPorts[loop] = traceinstruction();	//Nuke the port value so we don't pick up junk
+													//If the execution pipes don't do anything next cycle
+	}*/
 //TODO DEBUG SHOULD COMMIT ON FALLING EDGE AFTER SCHEDULE
 	_commitTailInstructions(COMMITPORTCOUNT);	//TODO pipeline diagram tends to show these somewhere.
 	//Add the new instructions into the ROB. They will live until pipes commit them
@@ -113,6 +122,36 @@ void ROB::fallingEdge()
 //======================================================================================================
 //									HELPER METHODS FOR CALC
 //======================================================================================================
+
+//don't muck about. Immidieately set the tag for this instruction.
+void ROB::entryExecuted(traceinstruction* inflight)
+{
+	vector<robEntry>::iterator i;
+
+	for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
+	{
+		if(i->traceLineNo == inflight->traceLineNo && (i->intOp != BADOpcode))
+		{
+			i->didExecute = true; break;
+		}
+	}														//Now the scheduler will know another register is ready
+}
+
+//Only return false if you find this instruction has not executed
+//Otherwise, it may have already been retired
+bool ROB::hasEntryExecuted(traceinstruction checkme)
+{
+	vector<robEntry>::iterator i;
+
+	for(i = ROBbuffer.begin(); i < ROBbuffer.end(); i++)	//Check every ROB entry for this trace instruction
+	{
+		if(	(i->traceLineNo == checkme.traceLineNo)	&&
+			(!i->didExecute)									)
+			return false;
+	}
+
+	return true;
+}
 
 //TODO: this needs to be fixed up with clock because it has no
 //Clock cycle value in the newEntry
@@ -176,11 +215,6 @@ bool ROB::isDependencyMet(unsigned short machinereg)
 			if(entry->retired == false)				//The corresponding instruction has not completed
 				return false;						//Dependency has therefore been resolved
 	}
-	/*Does not appear to work{
-		if((*entry).m_rd.machineReg == machinereg)
-			if(! (*entry).retired)
-				return false;
-	}*/
 
 	//return tr
 	return true;

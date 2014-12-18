@@ -56,6 +56,7 @@ public:
 					TraceOutputLogger*	logger,
 					ROB* 				pROB,
 					BranchResolver*		pBRUnit,
+					bool*				pOutStall,
 					vector< vector<traceinstruction> >* FPMpipe,
 					vector< vector<traceinstruction> >* FPApipe,
 					vector< vector<traceinstruction> >* ALU1pipe,
@@ -73,6 +74,8 @@ public:
 		_ALU2pipe 	= ALU2pipe;
 		_LS1pipe 	= LS1pipe;
 
+		_stallPrevStages = pOutStall;		//Use to stall older pipeline stages
+
 		_didMispredict = traceinstruction();
 
 		((*_FPMpipe)[0]).push_back(traceinstruction()); ((*_FPMpipe)[0]).push_back(traceinstruction()); ((*_FPMpipe)[0]).push_back(traceinstruction()); ((*_FPMpipe)[0]).push_back(traceinstruction());
@@ -84,6 +87,8 @@ public:
 
 	//Project spec function
 	void risingEdge();
+	void fallingEdge();	//This will set the stall signal true if a mispredict is found
+						//Doing this allows earlier pipe stages to react on their calc edges.
 	void calc();
 
 	void FPMinPort(traceinstruction FPM)	{_DFPM 	= FPM;	}	//Set the port equal to what the Decode stage has passed in during "calc()"
@@ -195,6 +200,9 @@ private:
 	TraceOutputLogger* 	_plogger;
 	ROB* 				_ROB;
 	BranchResolver*		_pBRUnit;	//Call this when a branch is mispredicted
+
+	//The assert net that this stage will toggle if a mispredict is detected
+	bool* 			_stallPrevStages;
 
 	//D ports that can be hammered by the logic of the scheduler
 	traceinstruction _DFPM;
