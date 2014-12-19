@@ -13,12 +13,16 @@ namespace R10k {
 void InstFetchStage::risingEdge()
 {
 	vector<string> stringInstList;
+	std::ostringstream oss;
 	unsigned int i;
 
 	//Do nothing if stalling
 	//On Branch Mispredict
 	if(*_stallInput)
 		return;
+
+	oss << "<C></4>cyc: " << _cycle;	//Display cycle somewhere
+	stringInstList.push_back(oss.str());
 
 	//Construct the correct type of input for the blit function
 	//An array of strings which it will blit out
@@ -30,19 +34,11 @@ void InstFetchStage::risingEdge()
 		stringInstList.push_back("empty");
 
 	//trigger the blit function so that the screen output is refreshed of the ROB content
-	_ui->blitInstructionList(&stringInstList);//blitROBList(&stringROB);
+	_ui->blitInstructionList(&stringInstList);
 
 	//Clear all of the instruction stream for next time
 	instructionstream = vector<traceinstruction>();	//CLEAN UP THE INSTRUCTION STREAM
 }
-
-/*
-//Branch mispredict rollback DISABLED
-void InstFetchStage::fallingEdge()
-{
-
-}
-*/
 
 void InstFetchStage::calc()
 {
@@ -62,22 +58,10 @@ void InstFetchStage::calc()
 	while (loop < INSTDECODEPERCYCLE)
 	{
 		if(!getline(fulltrace, traceline))
-			break;
+			{_fetchEnd = true; break;}
 
 		currentInstruction = traceinstruction(traceline,_tracelinenumber);
-/*ROLLBACK IS DISABLED
-		//Check if this is a failed branch. if so, we will need to keep a file pointer
-		//and fixed up branch for when the simulator rolls back.
-		if(		(currentInstruction.intOp == B) && 			//This is a branch
-				(currentInstruction.extra != 0) && 			//It will mispredict
-				(currentInstruction.traceLineNo < _failedBranch.traceLineNo)		)	//We have no earlier mispredict logged
-		{
 
-			//SHOULD USE ANOTHER FUNCTION
-			_BrUnit->logBranchAddress(fulltrace.tellg(),currentInstruction);
-
-		}
-*/
 		instructionstream.push_back(currentInstruction);
 		_plogger->logIFTrace(_tracelinenumber);				//Log the instruction fetch for the pipeline diagram
 

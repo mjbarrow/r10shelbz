@@ -26,7 +26,8 @@ using namespace std;
 
 #define redirectAllIO(UIinstance) 	std::ofstream out((UIinstance.getstdout_term()).c_str());	\
 									std::cout.rdbuf(out.rdbuf());							\
-									std::cin.rdbuf(out.rdbuf());							\
+									std::ifstream in((UIinstance.getstdout_term()).c_str());	\
+									std::cin.rdbuf(in.rdbuf());							\
 									std::ofstream err((UIinstance. getstderr_term()).c_str());	\
 									std::cerr.rdbuf(err.rdbuf());							\
 									std::cout << "INTERFACE STREAM READY!" << std::endl;	\

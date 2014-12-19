@@ -6,6 +6,7 @@
 // Description : Hello World in C++, Ansi-style
 //============================================================================
 
+#include <limits>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -29,6 +30,8 @@ int main() {
 	UserInterface UI;	//Creates some terminals and initializes the terminal widgets bla bla
 
 	int simulatorloop = 0;
+	int cycle =0;
+	int brk = 1;			//Character used to control the program
 
 	TraceOutputLogger	uiPipeLineDiagram(	&UI,
 											"outtrace.txt");		//Writes out the pipeline diagram of execution
@@ -120,52 +123,45 @@ int main() {
 	//TODO Make use of second debug terminal redirectallIO(UI)
 
 	simulatorloop = 0;
-
-	while(simulatorloop++ < 30)
+	while(simulatorloop < 15)	//do an extra 30 instructions or so after end
 	{
-		cerr << "cycle :" << simulatorloop << endl;
-	//CLOCK
-		//IF CK
-		r10kFetch.risingEdge();
-		//ID CK
-		r10kDecode.risingEdge();							//Clock in data from SetDtraces and refresh output from last cycle (nothing
-		//SCHED
-		r10kSchedule.risingEdge();
-		//EX CK
-		r10kExecute.risingEdge();
-		//COMMIT (ROB)
-		r10kCommit.risingEdge();
-		//Pipeline diagram also needs to clock
-		uiPipeLineDiagram.risingEdge();
-//FALLING EDGE COMPLETES BEFORE CALC
+		cerr << "cycle :" << cycle++ << endl;
+		//================================================
+		//			_|	RISING CLOCK	_|
+		//================================================
+		r10kFetch.risingEdge();			//IF CK
+		r10kDecode.risingEdge();		//ID CK					//Clock in data from SetDtraces and refresh output from last cycle (nothing
+		r10kSchedule.risingEdge();		//SCHED
+		r10kExecute.risingEdge();		//EX CK
+		r10kCommit.risingEdge();		//COMMIT (ROB)
+		uiPipeLineDiagram.risingEdge();	//Pipeline diagram also needs to clock
+		//================================================
+		//			|_	FALLING	CLOCK	|_
+		//================================================
 		r10kCommit.fallingEdge();		//this ensures all ROB activity is done before  scheduling
-//DOESNOTHING		r10kBrUnit.fallingEdge();
 		r10kExecute.fallingEdge();		//this will tell F,S and D stages not to clear ports
 										//and stall by asserting ExStageStall
-
-//TODO all units must clear their ports on a falling edge and re-calc if they detect
-//A mispredict. They do that by getting notification from the BrUnit.
-//The BrUnit must complete its falling edge first (suggests that logic belongs in BrUnit calc)
-
 		r10kSchedule.fallingEdge();		//cancel any scheduled instructions on mispredict
+		//================================================
+		//			(A V B)	LOGIC (A V B)
+		//================================================
+		r10kFetch.calc();		//IF CALC
+		r10kDecode.calc();		//ID CALC
+		r10kExecute.calc();		//EX CALC
+		r10kSchedule.calc();	//SCHED CALC (Note, use registers clocked to ROB on neg edge, see paper)
 
-	//END CLOCK
-	//CALC
-		//IF CALC
-		r10kFetch.calc();
-		//ID CALC
-		r10kDecode.calc();
-
-		//EX CALC
-		r10kExecute.calc();
-		//SCHED CALC
-		r10kSchedule.calc();	//see r10k paper, do scheduling based on registers just clocked in to Activelist/ROB
-		//EX CALC
-//Moved for Branch rollback		r10kExecute.calc();
-		//COMMIT CALC (ROB).
+		//===============================================
+		//			+++	USER INTERFACE +++
+		//===============================================
 		uiPipeLineDiagram.fallingEdge();//Just draw out the present status of the pipeline
 
-	//END CALC
+		//single step or break simulator flow
+		if(	(brk != simulatorloop) ||
+			(brk < simulatorloop)		)	//type a to run in auto mode
+			scanf ("%d",&brk);				//read in next breakpoint
+
+		if(!r10kFetch.didFetchAll())
+			simulatorloop++;
 	}
 
 	cerr << "Columbiano yea you know I lu dat" << endl; // prints !!!Hello World!!!

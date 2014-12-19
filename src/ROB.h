@@ -107,15 +107,11 @@ public:
 	//Call this when an instruction has been put down one of the execution pipes.
 	void entryExecuted(traceinstruction* inflight);
 	bool hasEntryExecuted(traceinstruction checkme);
-//REmove this feedback path	void entryScheduled(  int scheduleport,
-//						 traceinstruction scheduled){_executionPorts[scheduleport] = scheduled;}
-
 
 	bool isDependencyMet(unsigned short machinereg);			//Used by scheduler to check dependencies
 																//Must be called after "retireEntry()"
 	bool isAddressDependencyMet(int address, int traceNo, int instruction);		//If this address exists in the ROB, belongs to a store and
 																//That store did not start going + is older, stall.
-	//bool isDependencyMet(traceinstruction* memoryinstruction);	//As above but for L/S instructions
 
 	virtual ~ROB();
 

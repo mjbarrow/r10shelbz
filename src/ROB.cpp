@@ -272,7 +272,7 @@ void ROB::_commitTailInstructions(int count)
 			if(		/*(!inflight->didExecute) && Not valid. you do not have to wait for didExecute*/
 					(!inflight->retired) &&
 					(inflight->m_rt == commitme.m_rd.machineReg) &&
-					(inflight->rt != BADOpcode)							)	//Discard this check if the rt register is not used
+					(inflight->rt != BADOperand)							)	//Discard this check if the rt register is not used
 				return;
 			//Also cannot commit if an older trace than commitme has not been committed yet
 			if(		(inflight->traceLineNo < commitme.traceLineNo ) &&

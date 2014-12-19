@@ -19,10 +19,11 @@
 #define M 0b100000
 
 //Other defines related to class types
-#define BADInstKey -1
-#define BADOpcode BADInstKey
-#define BADOperand BADInstKey
-#define BADTraceNo BADInstKey
+#define BADInstKey 	-1
+#define BADAddress 	BADInstKey
+#define BADOpcode 	BADInstKey
+#define BADOperand 	BADInstKey	/*Always resolve true for R0 dependencies.*/
+#define BADTraceNo 	BADInstKey
 
 #define needextra(x) (x & 0b000111)
 

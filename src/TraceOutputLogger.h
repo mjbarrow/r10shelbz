@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <iostream>
+#include <fstream>
 #include <string>
 #include <fstream>
 #include <map>
@@ -78,10 +79,16 @@ public:
 	{
 		_ui = ui;
 		_cycle = 0;
-		_pipetrace.open(LogFile,std::ifstream::out);
+		_pipetrace.open(LogFile);
 	}
 
-	virtual ~TraceOutputLogger(){}
+	virtual ~TraceOutputLogger()
+	{
+		//Dump the output to _pipetrace
+		 for(unsigned int i=0; i<_pipelinediagram.size(); i++)
+		    _pipetrace << _pipelinediagram[i] << "\n";
+		_pipetrace.close();
+	}
 
 	void logIFTrace(int traceline){stageToLogStrings(" F ",traceline);}
 
@@ -124,7 +131,7 @@ private:
 	UserInterface* _ui;
 
 	//string*		_outfile;				//To do with outputting a pipeline trace
-	ifstream	_pipetrace;
+	ofstream	_pipetrace;
 
 };
 

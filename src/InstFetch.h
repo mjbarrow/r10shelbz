@@ -8,6 +8,7 @@
 #include <queue>
 #include <vector>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <fstream>
 #include "utils.h"
@@ -50,23 +51,16 @@ public:
 		_failedBranch.extra		= 0;						//By the way Vegita, did I tell you that my
 		_failedBranch.traceLineNo = 0x7fffffff;				//power level in this form is over a million?
 		_failedPlusOneFilePos 	= 0;						//Branches
+		_fetchEnd				= 0;
+		_cycle					= 0;
 		fulltrace.open(TraceFile,std::ifstream::in);
 	}
 
 	//Project required functions
 	void risingEdge();	//Push all of the instructions
-//	void fallingEdge();
 	void calc();		//Pull in 4 instructions if you can
 
-	//Logical control lever used to re-fetch instruction stream on failed branch prediction
-	//long long int getLastBranchPos(){return _branchAddQ.pop();}						//This is where to resume on missed branch.
-
-	//Should be called on falling edge...
-	void reFetchBranchMispredict(long long int filepos, vector<traceinstruction>* oldQout)
-	{
-		fulltrace.seekg(filepos);				//Roll back myself
-		_pdecstage->setDTraceLines(oldQout); 	//Roll back my output to the next stage
-	}	//will begin fetching and executing here.
+	bool didFetchAll(){return _fetchEnd;}
 
 	virtual ~InstFetchStage(){ fulltrace.close();}
 
@@ -83,6 +77,8 @@ private:
 	traceinstruction	_failedBranch;
 	BranchResolver*		_BrUnit;
 	bool*				_stallInput;
+	bool				_fetchEnd;				//set this true when finished getting inst stream
+	int					_cycle;
 
 	string traceInstructionToString(int entry);
 };

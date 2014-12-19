@@ -51,7 +51,8 @@ int decode_opcode(string Opcode)
 //End utility functions
 
 instruction::instruction() {
-	Operand3_val = Operand2_val = Operand1_val = Opcode_val = BADOperand;
+	Operand3_val = Operand2_val = Operand1_val = BADOperand;
+	Opcode_val = BADOpcode;
 	Operand3_name = Operand2_name = Operand1_name = "BAD";
 }
 
@@ -62,8 +63,9 @@ instruction::instruction(string str_instruction)
 	std::string unchked_asm;
 
 	//init to bad instruction
-	Opcode_val = Operand1_val = Operand2_val = Operand3_val  = BADOperand;
-	Opcode_name = Operand1_name = Operand2_name = Operand3_name = "BAD";
+	 Operand1_val = Operand2_val = Operand3_val  = BADOperand;
+	 Opcode_val = BADOpcode;
+	 Opcode_name = Operand1_name = Operand2_name = Operand3_name = "BAD";
 
 	//Get Opcode
 	if ((pos = str_instruction.find(delimiter)) != std::string::npos)
